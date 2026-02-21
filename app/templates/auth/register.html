@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Smart Expense Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="auth-body">
+    <div class="auth-shell">
+        <aside class="auth-brand">
+            <div>
+                <div class="brand-badge"><i class="bi bi-wallet2"></i></div>
+                <h2>Smart Expense Tracker</h2>
+                <p>Create your account and turn daily transactions into clean insights and consistent goals.</p>
+                <div class="brand-points">
+                    <div class="brand-point"><i class="bi bi-lightning-charge"></i><span>Fast expense logging</span></div>
+                    <div class="brand-point"><i class="bi bi-pie-chart"></i><span>Visual income vs spend analysis</span></div>
+                    <div class="brand-point"><i class="bi bi-piggy-bank"></i><span>Goal-driven saving workflow</span></div>
+                </div>
+            </div>
+            <p>Simple onboarding, powerful tracking from day one.</p>
+        </aside>
+
+        <main class="auth-panel">
+            <section class="login-container">
+                <header class="auth-header">
+                    <span class="auth-tag"><i class="bi bi-stars"></i> Start now</span>
+                    <h1>Create your account</h1>
+                    <p>Set up your profile in under a minute.</p>
+                </header>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                    <div class="flash-message {{ 'flash-success' if category == 'success' else 'flash-error' }}">
+                        {{ message }}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <form id="registerForm" method="POST" action="{{ url_for('auth.register') }}" novalidate>
+                    <div class="form-group">
+                        <div class="password-wrapper">
+                            <input type="text" name="username" id="username" class="input-control" placeholder=" " required>
+                            <label for="username" class="floating-label">Full Name</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="password-wrapper">
+                            <input type="email" name="email" id="email" class="input-control" placeholder=" " required>
+                            <label for="email" class="floating-label">Email Address</label>
+                        </div>
+                        <div id="emailError" class="error-message">Please enter a valid email address.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="password-wrapper">
+                            <input type="password" name="password" id="password" class="input-control" placeholder=" " required>
+                            <label for="password" class="floating-label">Password</label>
+                            <button type="button" class="toggle-password" id="togglePassword" aria-label="Toggle password visibility">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div id="passwordError" class="error-message">Password must be at least 6 characters.</div>
+                    </div>
+
+                    <button type="submit" class="btn-login">Create Account</button>
+
+                    <div class="form-footer">
+                        Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>initAuthForm({ formId: "registerForm", loadingText: "Creating account..." });</script>
+</body>
+
+</html>
+
