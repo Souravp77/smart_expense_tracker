@@ -30,11 +30,40 @@ function bindForms() {
 
     const goalForm = document.getElementById('goalForm');
     if (goalForm) {
+        // Sync swatch selected highlight
+        goalForm.querySelectorAll('.goal-color-swatch input[type="radio"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+                goalForm.querySelectorAll('.goal-color-swatch').forEach((s) => s.classList.remove('selected'));
+                if (radio.parentElement) radio.parentElement.classList.add('selected');
+            });
+        });
+
+        // Quick suggestion chips — autofill goal name
+        goalForm.querySelectorAll('.gm-suggest').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const nameInput = goalForm.elements.name;
+                if (nameInput) {
+                    nameInput.value = btn.dataset.name || '';
+                    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    nameInput.focus();
+                }
+            });
+        });
+
         goalForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const data = Object.fromEntries(new FormData(e.target));
             const goalId = data.goalId;
             delete data.goalId;
+            data.current = data.current === '' ? '0' : data.current;
+            data.deadline = data.deadline || null;
+
+            const targetAmount = parseFloat(data.target);
+            const currentAmount = parseFloat(data.current);
+            if (Number.isFinite(targetAmount) && Number.isFinite(currentAmount) && currentAmount > targetAmount) {
+                toast.error('Initial amount cannot be greater than target amount');
+                return;
+            }
 
             loading.with(async () => {
                 try {

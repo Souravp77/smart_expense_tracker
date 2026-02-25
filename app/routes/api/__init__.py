@@ -1,12 +1,9 @@
 from flask import Blueprint
 
-
 api_bp = Blueprint('api', __name__)
 
+# Standard practice: import routes at the end to avoid circular imports
+# though since these modules import api_bp, we still have to be careful.
+# However, importing them here ensures they are registered when api_bp is used.
 
-def register_api_routes():
-    # Import modules for side-effect route registration on api_bp.
-    from app.routes.api import data, goals, health, settings, transactions  # noqa: F401
-
-
-register_api_routes()
+from . import budgets, data, goals, health, responses, settings, transactions

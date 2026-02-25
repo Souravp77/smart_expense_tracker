@@ -1,4 +1,4 @@
-﻿export function renderSettingsView(app, container) {
+export function renderSettingsView(app, container) {
     const selectedCurrency = app.state.user?.currency || 'INR';
 
     container.innerHTML = `
@@ -39,8 +39,8 @@
 
             <div class="glass rounded-2xl p-6 border border-rose-200 dark:border-rose-800/40 space-y-3">
                 <h4 class="font-semibold text-rose-600 dark:text-rose-300">Danger Zone</h4>
-                <p class="text-sm text-slate-500">Clear all transactions and savings goals. This cannot be undone.</p>
-                <button onclick="app.clearAllData()" class="btn-secondary text-rose-600 border-rose-300 hover:bg-rose-50">Clear All Data</button>
+                <p class="text-sm text-slate-500">Delete all transactions and savings goals permanently.</p>
+                <button onclick="app.clearAllData()" class="btn-secondary text-rose-600 border-rose-300 hover:bg-rose-50 inline-flex items-center gap-2"><i class="fas fa-trash-alt"></i><span>Clear all data</span></button>
             </div>
         </div>
     `;

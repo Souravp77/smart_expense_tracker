@@ -1,6 +1,6 @@
 from flask_login import current_user, login_required
 
-from app.routes.api import api_bp
+from . import api_bp
 from app.routes.api.responses import ok, server_error
 from app.services.finance_service import clear_user_financial_data, get_dashboard_payload
 

@@ -32,6 +32,11 @@ def savings():
 def analytics():
     return _render_dashboard('analytics')
 
+@main_bp.route('/budget')
+@login_required
+def budget():
+    return _render_dashboard('budget')
+
 @main_bp.route('/settings')
 @login_required
 def settings():

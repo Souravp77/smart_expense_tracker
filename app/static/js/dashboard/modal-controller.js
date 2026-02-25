@@ -42,17 +42,52 @@ export const modal = {
     }
 };
 
+function normalizeGoalColor(color) {
+    const aliases = {
+        'bg-sky-500': 'bg-blue-500',
+        'bg-cyan-500': 'bg-teal-600',
+        'bg-blue-700': 'bg-indigo-600',
+        'bg-indigo-500': 'bg-indigo-600',
+        'bg-emerald-500': 'bg-teal-600',
+    };
+    return aliases[color] || color || 'bg-blue-500';
+}
+
 export const goalModal = {
     element: () => document.getElementById('goalModal'),
     open() {
         const form = document.getElementById('goalForm');
         if (form) form.reset();
         const title = document.getElementById('goalModalTitle');
-        if (title) title.textContent = 'Add Savings Goal';
+        if (title) title.textContent = 'Create New Goal';
+        // Update save button text
+        const saveBtn = form?.querySelector('.gm-btn-save, button[type="submit"]');
+        const saveBtnSpan = saveBtn?.querySelector('span') || saveBtn;
+        if (saveBtnSpan) saveBtnSpan.textContent = 'Create Goal';
         const idInput = document.getElementById('goalId');
         if (idInput) idInput.value = '';
+        const currentInput = form?.elements?.current;
+        if (currentInput) currentInput.value = '0';
+
+        // Reset swatches to default blue
+        if (form) {
+            form.querySelectorAll('.goal-color-swatch').forEach((s) => s.classList.remove('selected'));
+            const blueRadio = form.querySelector('input[name="color"][value="bg-blue-500"]');
+            if (blueRadio) {
+                blueRadio.checked = true;
+                blueRadio.parentElement?.classList.add('selected');
+            }
+        }
+
+        ['name', 'target', 'current'].forEach((field) => {
+            const input = form?.elements?.[field];
+            if (input) input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
         const el = this.element();
         if (el) el.style.display = 'flex';
+
+        // Autofocus name input
+        setTimeout(() => { form?.elements?.name?.focus(); }, 80);
     },
     openForEdit(goal) {
         const form = document.getElementById('goalForm');
@@ -60,15 +95,42 @@ export const goalModal = {
 
         const title = document.getElementById('goalModalTitle');
         if (title) title.textContent = 'Edit Savings Goal';
+        // Update save button text
+        const saveBtn = form.querySelector('.gm-btn-save, button[type="submit"]');
+        const saveBtnSpan = saveBtn?.querySelector('span') || saveBtn;
+        if (saveBtnSpan) saveBtnSpan.textContent = 'Update Goal';
 
         document.getElementById('goalId').value = goal.id;
         form.elements.name.value = goal.name;
         form.elements.target.value = goal.target_amount;
         form.elements.current.value = goal.current_amount;
-        form.elements.color.value = goal.color || 'bg-blue-500';
+        if (form.elements.deadline) form.elements.deadline.value = goal.deadline || '';
+
+        // Restore saved color swatch
+        const savedColor = normalizeGoalColor(goal.color || 'bg-blue-500');
+        form.querySelectorAll('.goal-color-swatch').forEach((s) => s.classList.remove('selected'));
+        const matchedRadio = form.querySelector(`input[name="color"][value="${savedColor}"]`);
+        if (matchedRadio) {
+            matchedRadio.checked = true;
+            matchedRadio.parentElement?.classList.add('selected');
+        } else {
+            const blueRadio = form.querySelector('input[name="color"][value="bg-blue-500"]');
+            if (blueRadio) {
+                blueRadio.checked = true;
+                blueRadio.parentElement?.classList.add('selected');
+            }
+        }
+
+        ['name', 'target', 'current'].forEach((field) => {
+            const input = form.elements[field];
+            if (input) input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
 
         const el = this.element();
         if (el) el.style.display = 'flex';
+
+        // Autofocus name input
+        setTimeout(() => { form?.elements?.name?.focus(); }, 80);
     },
     close() {
         const el = this.element();
@@ -104,3 +166,4 @@ export function bindTransactionTypeSwitch() {
         });
     });
 }
+

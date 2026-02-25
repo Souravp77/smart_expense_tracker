@@ -45,7 +45,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
         rel="stylesheet">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='20260220b') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css', v='20260224e') }}">
     {% block extra_head %}{% endblock %}
 </head>
 
@@ -98,6 +98,13 @@
                         id="nav-transactions">
                         <i class="fas fa-wallet w-5"></i>
                         <span class="font-medium">Transactions</span>
+                    </button>
+
+                    <button onclick="app.navigate('budget')"
+                        class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left text-blue-200/80 hover:text-white hover:bg-white/10"
+                        id="nav-budget">
+                        <i class="fas fa-coins w-5"></i>
+                        <span class="font-medium">Budget</span>
                     </button>
 
                     <button onclick="app.navigate('savings')"
@@ -204,7 +211,6 @@
 
                 <form id="transactionForm" class="p-6 space-y-5">
                     <input type="hidden" name="txId" id="txId">
-                    <input type="hidden" name="goalId" id="txGoalId">
 
                     <div class="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
                         <label class="flex-1 cursor-pointer">
@@ -292,37 +298,61 @@
         </div>
     </div>
 
-    <!-- Goal Modal -->
+    <!-- Goal Modal — Professional Edition -->
     <div id="goalModal" class="modal-overlay">
-        <div class="modal-container">
-            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden">
-                <div
-                    class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                    <h3 id="goalModalTitle" class="text-lg font-bold text-slate-900 dark:text-white">Add Savings Goal
-                    </h3>
-                    <button onclick="goalModal.close()"
-                        class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+        <div class="modal-container" style="max-width:540px;">
+            <div class="gm-shell">
+
+                <!-- Gradient Header -->
+                <div class="gm-header">
+                    <div class="gm-header-inner">
+                        <div class="gm-header-icon"><i class="fas fa-piggy-bank"></i></div>
+                        <div>
+                            <h3 id="goalModalTitle" class="gm-title">Create New Goal</h3>
+                            <p class="gm-subtitle">Set a target and track your progress</p>
+                        </div>
+                    </div>
+                    <button onclick="goalModal.close()" class="gm-close" aria-label="Close">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
+                <!-- Error area -->
                 <div id="goalModalError" class="error-message mx-6 mt-4">
                     <i class="fas fa-exclamation-circle"></i>
                     <span id="goalModalErrorText"></span>
                 </div>
 
-                <form id="goalForm" class="p-6 space-y-5">
+                <form id="goalForm" class="gm-body">
                     <input type="hidden" name="goalId" id="goalId">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Goal
-                            Name</label>
-                        <input type="text" name="name" required class="form-input" placeholder="e.g., New Laptop">
+
+                    <!-- Goal Name -->
+                    <div class="gm-field">
+                        <label class="gm-label" for="goalNameInput">
+                            <i class="fas fa-tag"></i> Goal Name
+                        </label>
+                        <input id="goalNameInput" type="text" name="name" required class="form-input"
+                            placeholder="e.g., Dream Vacation, Emergency Fund…">
+                        <!-- Quick suggestion chips -->
+                        <div class="gm-suggestions">
+                            <span class="gm-suggestion-lbl">Quick:</span>
+                            <button type="button" class="gm-suggest" data-name="Emergency Fund">🛡️ Emergency
+                                Fund</button>
+                            <button type="button" class="gm-suggest" data-name="Dream Vacation">✈️ Dream
+                                Vacation</button>
+                            <button type="button" class="gm-suggest" data-name="New Laptop">💻 New Laptop</button>
+                            <button type="button" class="gm-suggest" data-name="Car Upgrade">🚗 Car Upgrade</button>
+                            <button type="button" class="gm-suggest" data-name="Wedding">💍 Wedding</button>
+                            <button type="button" class="gm-suggest" data-name="Home Down Payment">🏠 Home</button>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Target
-                                Amount</label>
+                    <!-- Amounts row -->
+                    <div class="gm-two-col">
+                        <div class="gm-field">
+                            <label class="gm-label">
+                                <i class="fas fa-crosshairs"></i> Target Amount
+                            </label>
                             <div class="relative">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium modal-currency-symbol"></span>
@@ -330,35 +360,75 @@
                                     placeholder="0.00">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Current
-                                Saved</label>
+                        <div class="gm-field">
+                            <label class="gm-label">
+                                <i class="fas fa-wallet"></i> Already Saved
+                            </label>
                             <div class="relative">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium modal-currency-symbol"></span>
-                                <input type="number" name="current" required min="0" step="0.01" class="form-input pl-8"
+                                <input type="number" name="current" min="0" step="0.01" class="form-input pl-8"
                                     placeholder="0.00">
                             </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Color
-                            Theme</label>
-                        <select name="color" class="form-input">
-                            <option value="bg-blue-500">Blue</option>
-                            <option value="bg-sky-500">Sky</option>
-                            <option value="bg-indigo-500">Indigo</option>
-                            <option value="bg-cyan-500">Cyan</option>
-                            <option value="bg-blue-700">Deep Blue</option>
-                        </select>
+                    <!-- Deadline -->
+                    <div class="gm-field">
+                        <label class="gm-label">
+                            <i class="fas fa-calendar-alt"></i> Target Deadline
+                            <span class="gm-label-optional">(optional)</span>
+                        </label>
+                        <input type="date" name="deadline" class="form-input">
                     </div>
 
-                    <div class="flex gap-3 pt-4">
-                        <button type="button" onclick="goalModal.close()" class="btn-secondary flex-1">Cancel</button>
-                        <button type="submit" class="btn-primary flex-1">Save Goal</button>
+                    <!-- Color picker -->
+                    <div class="gm-field">
+                        <label class="gm-label"><i class="fas fa-palette"></i> Goal Color</label>
+                        <div class="gm-color-row goal-color-picker">
+                            <label class="goal-color-swatch selected gm-swatch" title="Ocean Blue"
+                                style="background:#2563eb;" id="swatchBlue">
+                                <input type="radio" name="color" value="bg-blue-500" checked>
+                                <span class="gm-swatch-tooltip">Ocean Blue</span>
+                            </label>
+                            <label class="goal-color-swatch gm-swatch" title="Forest Teal" style="background:#0f766e;"
+                                id="swatchTeal">
+                                <input type="radio" name="color" value="bg-teal-600">
+                                <span class="gm-swatch-tooltip">Forest Teal</span>
+                            </label>
+                            <label class="goal-color-swatch gm-swatch" title="Royal Violet" style="background:#7c3aed;"
+                                id="swatchPurple">
+                                <input type="radio" name="color" value="bg-violet-600">
+                                <span class="gm-swatch-tooltip">Royal Violet</span>
+                            </label>
+                            <label class="goal-color-swatch gm-swatch" title="Rose Red" style="background:#e11d48;"
+                                id="swatchRose">
+                                <input type="radio" name="color" value="bg-rose-600">
+                                <span class="gm-swatch-tooltip">Rose Red</span>
+                            </label>
+                            <label class="goal-color-swatch gm-swatch" title="Amber Gold" style="background:#b45309;"
+                                id="swatchAmber">
+                                <input type="radio" name="color" value="bg-amber-700">
+                                <span class="gm-swatch-tooltip">Amber Gold</span>
+                            </label>
+                            <label class="goal-color-swatch gm-swatch" title="Indigo" style="background:#4338ca;"
+                                id="swatchIndigo">
+                                <input type="radio" name="color" value="bg-indigo-600">
+                                <span class="gm-swatch-tooltip">Indigo</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Footer actions -->
+                    <div class="gm-footer">
+                        <button type="button" onclick="goalModal.close()" class="gm-btn-cancel">Cancel</button>
+                        <button type="submit" class="gm-btn-save">
+                            <i class="fas fa-check"></i>
+                            <span>Create Goal</span>
+                        </button>
                     </div>
                 </form>
+
             </div>
         </div>
     </div>
@@ -369,7 +439,7 @@
             initialTab: "{{ initial_tab or 'dashboard' }}"
         };
     </script>
-    <script type="module" src="{{ url_for('static', filename='js/dashboard.js', v='20260220b') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/dashboard.js', v='20260224e') }}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
 

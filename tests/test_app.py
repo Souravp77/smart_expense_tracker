@@ -105,18 +105,16 @@ class ProjectTestCase(unittest.TestCase):
                                     content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        # Frontend hidden goalId can be posted as an empty string.
-        empty_goal_payload = {
+        expense_payload = {
             'type': 'expense',
             'amount': 120.00,
             'category': 'Food & Dining',
             'description': 'Groceries',
             'date': '2023-08-02',
-            'method': 'Card',
-            'goalId': ''
+            'method': 'Card'
         }
         response = self.client.post('/api/transactions',
-                                    data=json.dumps(empty_goal_payload),
+                                    data=json.dumps(expense_payload),
                                     content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
@@ -151,6 +149,25 @@ class ProjectTestCase(unittest.TestCase):
         self.assertEqual(len(data['savingsGoals']), 1)
         self.assertEqual(data['savingsGoals'][0]['name'], 'New Laptop')
 
+    def test_api_goals_accepts_legacy_color_alias(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        data = {
+            'name': 'Emergency Fund',
+            'target': 5000.00,
+            'current': 1000.00,
+            'color': 'bg-indigo-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(data),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get('/api/data')
+        payload = json.loads(response.data)
+        self.assertEqual(payload['savingsGoals'][0]['color'], 'bg-indigo-600')
+
     def test_api_settings_persists_currency(self):
         self.register('Test User', 'test@example.com', 'password123')
         self.login('test@example.com', 'password123')
@@ -165,6 +182,72 @@ class ProjectTestCase(unittest.TestCase):
         response = self.client.get('/api/data')
         data = json.loads(response.data)
         self.assertEqual(data['user']['currency'], 'EUR')
+
+    def test_transactions_do_not_mutate_goals(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1000.00,
+            'current': 100.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        tx_payload = {
+            'type': 'income',
+            'amount': 200.00,
+            'category': 'Investment',
+            'description': 'Dividend',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(tx_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get('/api/data')
+        data = json.loads(response.data)
+        self.assertEqual(len(data['savingsGoals']), 1)
+        self.assertEqual(float(data['savingsGoals'][0]['current_amount']), 100.0)
+
+    def test_api_budgets_create_and_update(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        payload = {
+            'category': 'Food & Dining',
+            'amount': 10000.00,
+            'month': '2026-02'
+        }
+        response = self.client.post(
+            '/api/budgets',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+
+        update_payload = {
+            'category': 'Food & Dining',
+            'amount': 12000.00,
+            'month': '2026-02'
+        }
+        response = self.client.post(
+            '/api/budgets',
+            data=json.dumps(update_payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get('/api/data')
+        data = json.loads(response.data)
+        self.assertEqual(len(data['budgets']), 1)
+        self.assertEqual(float(data['budgets'][0]['amount']), 12000.0)
 
 if __name__ == '__main__':
     unittest.main()

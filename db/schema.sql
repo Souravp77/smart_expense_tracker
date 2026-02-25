@@ -45,10 +45,8 @@ CREATE TABLE transactions (
     description VARCHAR(255),
     date DATE NOT NULL,
     method VARCHAR(50),
-    goal_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (goal_id) REFERENCES savings_goals(goal_id) ON DELETE SET NULL
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE budgets (
@@ -79,14 +77,14 @@ INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color, 
 (1, 'Emergency Fund', 300000.00, 90000.00, 'bg-blue-500', '2026-12-31'),
 (1, 'Summer Trip', 150000.00, 45000.00, 'bg-indigo-500', '2026-08-15');
 
-INSERT INTO transactions (user_id, category, amount, type, description, date, method, goal_id) VALUES
-(1, 'Salary', 320000.00, 'income', 'Monthly salary', '2026-02-01', 'Bank Transfer', NULL),
-(1, 'Freelance', 45000.00, 'income', 'Side project payment', '2026-02-05', 'Bank Transfer', NULL),
-(1, 'Food & Dining', 16000.00, 'expense', 'Weekly groceries', '2026-02-08', 'Card', NULL),
-(1, 'Transportation', 7500.00, 'expense', 'Fuel and commute', '2026-02-10', 'Card', NULL),
-(1, 'Bills & Utilities', 22000.00, 'expense', 'Electricity + internet', '2026-02-12', 'Bank Transfer', NULL),
-(1, 'Investment', 30000.00, 'income', 'Dividend payout', '2026-02-15', 'Bank Transfer', 1),
-(1, 'Entertainment', 9500.00, 'expense', 'Weekend outing', '2026-02-18', 'Card', NULL);
+INSERT INTO transactions (user_id, category, amount, type, description, date, method) VALUES
+(1, 'Salary', 320000.00, 'income', 'Monthly salary', '2026-02-01', 'Bank Transfer'),
+(1, 'Freelance', 45000.00, 'income', 'Side project payment', '2026-02-05', 'Bank Transfer'),
+(1, 'Food & Dining', 16000.00, 'expense', 'Weekly groceries', '2026-02-08', 'Card'),
+(1, 'Transportation', 7500.00, 'expense', 'Fuel and commute', '2026-02-10', 'Card'),
+(1, 'Bills & Utilities', 22000.00, 'expense', 'Electricity + internet', '2026-02-12', 'Bank Transfer'),
+(1, 'Investment', 30000.00, 'income', 'Dividend payout', '2026-02-15', 'Bank Transfer'),
+(1, 'Entertainment', 9500.00, 'expense', 'Weekend outing', '2026-02-18', 'Card');
 
 INSERT INTO budgets (user_id, category, amount, month) VALUES
 (1, 'Food & Dining', 25000.00, '2026-02'),

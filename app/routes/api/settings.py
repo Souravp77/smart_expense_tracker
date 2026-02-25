@@ -1,7 +1,7 @@
 from flask import request
 from flask_login import current_user, login_required
 
-from app.routes.api import api_bp
+from . import api_bp
 from app.routes.api.responses import bad_request, ok, server_error
 from app.services.finance_service import update_settings
 from app.utils.validators import validate_settings_payload

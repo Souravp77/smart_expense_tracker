@@ -5,15 +5,16 @@ def add_goal(user_id, data):
     with db_cursor() as (conn, cursor):
         cursor.execute(
             """
-            INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color, deadline)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (
                 user_id,
                 data['name'],
                 data['target'],
                 data['current'],
-                data.get('color', 'bg-blue-500')
+                data.get('color', 'bg-blue-500'),
+                data.get('deadline')
             )
         )
         conn.commit()
@@ -25,7 +26,7 @@ def update_goal(user_id, goal_id, data):
         cursor.execute(
             """
             UPDATE savings_goals
-            SET name=%s, target_amount=%s, current_amount=%s, color=%s
+            SET name=%s, target_amount=%s, current_amount=%s, color=%s, deadline=%s
             WHERE goal_id=%s AND user_id=%s
             """,
             (
@@ -33,6 +34,7 @@ def update_goal(user_id, goal_id, data):
                 data['target'],
                 data['current'],
                 data.get('color', 'bg-blue-500'),
+                data.get('deadline'),
                 goal_id,
                 user_id
             )
