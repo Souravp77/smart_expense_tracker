@@ -136,7 +136,7 @@ class ProjectTestCase(unittest.TestCase):
         data = {
             'name': 'New Laptop',
             'target': 1500.00,
-            'current': 500.00,
+            'current': 0.00,
             'color': 'bg-blue-500'
         }
         response = self.client.post('/api/goals', 
@@ -156,7 +156,7 @@ class ProjectTestCase(unittest.TestCase):
         data = {
             'name': 'Emergency Fund',
             'target': 5000.00,
-            'current': 1000.00,
+            'current': 0.00,
             'color': 'bg-indigo-500'
         }
         response = self.client.post('/api/goals',
@@ -187,6 +187,19 @@ class ProjectTestCase(unittest.TestCase):
         self.register('Test User', 'test@example.com', 'password123')
         self.login('test@example.com', 'password123')
 
+        seed_income_payload = {
+            'type': 'income',
+            'amount': 100.00,
+            'category': 'Salary',
+            'description': 'Initial income',
+            'date': '2026-02-09',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(seed_income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
         goal_payload = {
             'name': 'Emergency Fund',
             'target': 1000.00,
@@ -215,6 +228,86 @@ class ProjectTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(len(data['savingsGoals']), 1)
         self.assertEqual(float(data['savingsGoals'][0]['current_amount']), 100.0)
+
+    def test_finance_summary_reflects_savings_allocation(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 1000.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        expense_payload = {
+            'type': 'expense',
+            'amount': 200.00,
+            'category': 'Food & Dining',
+            'description': 'Groceries',
+            'date': '2026-02-10',
+            'method': 'Card'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(expense_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 5000.00,
+            'current': 300.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get('/api/data')
+        data = json.loads(response.data)
+        summary = data['financeSummary']
+        self.assertEqual(float(summary['totalIncomeRecorded']), 1000.0)
+        self.assertEqual(float(summary['allocatedSavings']), 300.0)
+        self.assertEqual(float(summary['availableIncome']), 700.0)
+        self.assertEqual(float(summary['totalExpense']), 200.0)
+        self.assertEqual(float(summary['availableBalance']), 500.0)
+        self.assertEqual(int(summary['savingsRate']), 71)
+
+    def test_goal_allocation_cannot_exceed_income(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 200.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1000.00,
+            'current': 250.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Allocated savings cannot exceed total income', response.get_json()['error'])
 
     def test_api_budgets_create_and_update(self):
         self.register('Test User', 'test@example.com', 'password123')

@@ -10,7 +10,9 @@ const CATEGORY_ICONS = {
     Healthcare: { icon: 'fa-heart-pulse', color: '#10b981' },
     Education: { icon: 'fa-graduation-cap', color: '#6366f1' },
     'Other Expense': { icon: 'fa-layer-group', color: '#64748b' },
+    Savings: { icon: 'fa-piggy-bank', color: '#0ea5e9' },
 };
+
 
 const toInlineJsString = (value) => JSON.stringify(value)
     .replace(/&/g, '&amp;')
@@ -52,7 +54,7 @@ export function renderBudgetView(app, container) {
     const currentMonth = app.state.budgetMonth || new Date().toISOString().slice(0, 7);
     if (!app.state.budgetMonth) app.state.budgetMonth = currentMonth;
 
-    const categories = CATEGORY_OPTIONS.expense || [];
+    const categories = app.state.categories?.expense || [];
     const monthBudgets = app.state.budgets.filter((b) => b.month === currentMonth);
     const budgetMap = new Map(monthBudgets.map((b) => [b.category, toNumber(b.amount)]));
 
@@ -114,11 +116,12 @@ export function renderBudgetView(app, container) {
                 });
             }
 
-            // Pacing only for current month
-            if (!isPastMonth && !isFutureMonth && spent > 0 && effectiveToday > 0 && categoryUsage < 100) {
+            // Pacing only for current month. Skip first 5 days to avoid false alarms from monthly fixed costs.
+            if (!isPastMonth && !isFutureMonth && spent > 0 && effectiveToday > 5 && categoryUsage < 100) {
                 const dailyPace = spent / effectiveToday;
                 const projectedSpent = dailyPace * lastDayOfMonth;
-                if (projectedSpent > budget) {
+                // Only alert if projected spend is > 10% over budget
+                if (projectedSpent > budget * 1.1) {
                     const daysToLimit = Math.floor((budget - spent) / dailyPace);
                     warningItems.push({
                         type: 'info',
@@ -128,6 +131,7 @@ export function renderBudgetView(app, container) {
                 }
             }
         }
+
 
         return `
             <article class="budget-card">

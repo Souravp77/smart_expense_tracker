@@ -1,4 +1,5 @@
 from app.core.db import db_cursor
+from app.services.errors import ResourceNotFoundError
 
 
 def list_budgets(user_id):
@@ -57,4 +58,6 @@ def delete_budget(user_id, budget_id):
             "DELETE FROM budgets WHERE budget_id = %s AND user_id = %s",
             (budget_id, user_id)
         )
+        if cursor.rowcount == 0:
+            raise ResourceNotFoundError("Budget not found")
         conn.commit()

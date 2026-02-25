@@ -2,8 +2,9 @@ from flask import request
 from flask_login import current_user, login_required
 
 from . import api_bp
-from app.routes.api.responses import bad_request, created, ok, server_error
+from app.routes.api.responses import bad_request, created, not_found, ok, server_error
 from app.services.budget_service import delete_budget, save_budget
+from app.services.errors import ResourceNotFoundError
 from app.utils.validators import validate_budget_payload
 
 
@@ -29,5 +30,7 @@ def remove_budget(budget_id):
     try:
         delete_budget(current_user.id, budget_id)
         return ok({'message': 'Budget deleted'})
+    except ResourceNotFoundError as error:
+        return not_found(error)
     except Exception as error:
         return server_error(error)

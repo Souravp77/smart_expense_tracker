@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>{% block title %}Smart Expense Tracker Pro{% endblock %}</title>
 
     <script>
@@ -298,7 +299,7 @@
         </div>
     </div>
 
-    <!-- Goal Modal — Professional Edition -->
+    <!-- Goal Modal - Professional Edition -->
     <div id="goalModal" class="modal-overlay">
         <div class="modal-container" style="max-width:540px;">
             <div class="gm-shell">
@@ -332,18 +333,16 @@
                             <i class="fas fa-tag"></i> Goal Name
                         </label>
                         <input id="goalNameInput" type="text" name="name" required class="form-input"
-                            placeholder="e.g., Dream Vacation, Emergency Fund…">
+                            placeholder="e.g., Dream Vacation, Emergency Fund">
                         <!-- Quick suggestion chips -->
                         <div class="gm-suggestions">
                             <span class="gm-suggestion-lbl">Quick:</span>
-                            <button type="button" class="gm-suggest" data-name="Emergency Fund">🛡️ Emergency
-                                Fund</button>
-                            <button type="button" class="gm-suggest" data-name="Dream Vacation">✈️ Dream
-                                Vacation</button>
-                            <button type="button" class="gm-suggest" data-name="New Laptop">💻 New Laptop</button>
-                            <button type="button" class="gm-suggest" data-name="Car Upgrade">🚗 Car Upgrade</button>
-                            <button type="button" class="gm-suggest" data-name="Wedding">💍 Wedding</button>
-                            <button type="button" class="gm-suggest" data-name="Home Down Payment">🏠 Home</button>
+                            <button type="button" class="gm-suggest" data-name="Emergency Fund">Emergency Fund</button>
+                            <button type="button" class="gm-suggest" data-name="Dream Vacation">Dream Vacation</button>
+                            <button type="button" class="gm-suggest" data-name="New Laptop">New Laptop</button>
+                            <button type="button" class="gm-suggest" data-name="Car Upgrade">Car Upgrade</button>
+                            <button type="button" class="gm-suggest" data-name="Wedding">Wedding</button>
+                            <button type="button" class="gm-suggest" data-name="Home Down Payment">Home</button>
                         </div>
                     </div>
 
@@ -444,3 +443,4 @@
 </body>
 
 </html>
+

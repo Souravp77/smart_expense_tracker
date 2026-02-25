@@ -73,7 +73,7 @@ class FullFlowTestCase(unittest.TestCase):
         goal_data = {
             'name': 'Vacation',
             'target': 2000.00,
-            'current': 500.00,
+            'current': 0.00,
             'color': 'bg-emerald-500'
         }
         res = self.client.post('/api/goals', json=goal_data)

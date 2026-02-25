@@ -6,6 +6,13 @@ from app.services.demo_data_service import seed_demo_data
 
 auth_bp = Blueprint('auth', __name__)
 
+
+def _valid_email(email):
+    if not email or '@' not in email:
+        return False
+    local, _, domain = email.partition('@')
+    return bool(local.strip()) and '.' in domain
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -37,16 +44,30 @@ def register():
         return redirect(url_for('main.dashboard'))
 
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
+        username = (request.form.get('username') or '').strip()
+        email = (request.form.get('email') or '').strip().lower()
+        password = request.form.get('password') or ''
+
+        if not username:
+            flash('Full name is required', 'error')
+            return redirect(url_for('auth.register'))
+        if not _valid_email(email):
+            flash('Please enter a valid email address', 'error')
+            return redirect(url_for('auth.register'))
+        if len(password) < 6:
+            flash('Password must be at least 6 characters', 'error')
+            return redirect(url_for('auth.register'))
 
         user = get_user_by_email(email)
         if user:
             flash('Email already exists', 'error')
             return redirect(url_for('auth.register'))
 
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        try:
+            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        except (TypeError, ValueError):
+            flash('Invalid registration data', 'error')
+            return redirect(url_for('auth.register'))
         new_user_id = register_user(username, email, hashed_password)
 
         if not new_user_id:

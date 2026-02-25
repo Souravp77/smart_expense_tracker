@@ -34,6 +34,7 @@ export class ExpenseApp {
             transactions: [],
             savingsGoals: [],
             budgets: [],
+            financeSummary: null,
             user: null,
             themeMode: initialMode,
             theme: initialMode,
@@ -58,9 +59,21 @@ export class ExpenseApp {
     }
 
     async requestJson(url, options = {}, fallbackMessage = 'Request failed', _hasRetried = false) {
+        const finalOptions = { ...options };
+        if (finalOptions.method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(finalOptions.method.toUpperCase())) {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+            if (csrfToken) {
+                finalOptions.headers = {
+                    ...(finalOptions.headers || {}),
+                    'X-CSRF-Token': csrfToken
+                };
+            }
+        }
+
         let response;
         try {
-            response = await fetch(url, options);
+            response = await fetch(url, finalOptions);
         } catch (error) {
             throw new Error(`Network error: ${error.message}`);
         }
@@ -89,7 +102,7 @@ export class ExpenseApp {
                 url.startsWith('/api/')
             ) {
                 const relativeUrl = url.replace(/^\/+/, '');
-                return this.requestJson(relativeUrl, options, fallbackMessage, true);
+                return this.requestJson(relativeUrl, finalOptions, fallbackMessage, true);
             }
 
             const plainText = rawBody ? rawBody.replace(/\s+/g, ' ').trim() : '';
@@ -126,27 +139,12 @@ export class ExpenseApp {
             this.state.transactions = data.transactions;
             this.state.savingsGoals = data.savingsGoals;
             this.state.budgets = data.budgets || [];
+            this.state.financeSummary = data.financeSummary || null;
             this.state.user = data.user;
+            this.state.categories = data.categories || { income: [], expense: [] };
 
-            // INR-first behavior: until user explicitly chooses another currency,
-            // keep UI on INR and backfill server value.
-            if (this.state.user && !this.hasUserCurrencyPreference) {
-                const previousCurrency = this.state.user.currency;
-                this.state.user.currency = 'INR';
-
-                if (previousCurrency && previousCurrency !== 'INR') {
-                    this.requestJson(
-                        '/api/settings',
-                        {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ currency: 'INR' })
-                        },
-                        'Failed to normalize currency'
-                    ).catch(() => { });
-                }
-            }
             this.lastSyncAt = Date.now();
+
 
             this.updateUserProfileUI();
             this.navigate(this.state.activeTab);
@@ -569,23 +567,56 @@ export class ExpenseApp {
         return { text: `${daysLeft} days left`, urgency: 'normal', icon: '<i class="fas fa-calendar-days"></i>', daysLeft };
     }
 
+    getTotalIncome() {
+        const fromSummary = this.state.financeSummary?.totalIncomeRecorded;
+        if (Number.isFinite(fromSummary)) return fromSummary;
+        return this.state.transactions
+            .filter((t) => t.type === 'income')
+            .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    }
+
+    getTotalExpense() {
+        const fromSummary = this.state.financeSummary?.totalExpense;
+        if (Number.isFinite(fromSummary)) return fromSummary;
+        return this.state.transactions
+            .filter((t) => t.type === 'expense')
+            .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+    }
+
+    getAllocatedSavingsTotal() {
+        const fromSummary = this.state.financeSummary?.allocatedSavings;
+        if (Number.isFinite(fromSummary)) return fromSummary;
+        return this.state.savingsGoals
+            .reduce((sum, goal) => sum + parseFloat(goal.current_amount || 0), 0);
+    }
+
+    getAvailableIncome() {
+        const fromSummary = this.state.financeSummary?.availableIncome;
+        if (Number.isFinite(fromSummary)) return fromSummary;
+        return this.getTotalIncome() - this.getAllocatedSavingsTotal();
+    }
+
     calculateStats() {
-        const income = this.state.transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-        const expense = this.state.transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        const summary = this.state.financeSummary || {};
+        const income = Number.isFinite(summary.availableIncome) ? summary.availableIncome : this.getAvailableIncome();
+        const expense = Number.isFinite(summary.totalExpense) ? summary.totalExpense : this.getTotalExpense();
+        const balance = Number.isFinite(summary.availableBalance) ? summary.availableBalance : (income - expense);
+        const savingsRate = Number.isFinite(summary.savingsRate)
+            ? summary.savingsRate
+            : (income ? Math.round(((income - expense) / income) * 100) : 0);
 
         return {
             totalIncome: income,
             totalExpense: expense,
-            balance: income - expense,
-            savingsRate: income ? Math.round(((income - expense) / income) * 100) : 0
+            balance,
+            savingsRate
         };
     }
 
     getAnalyticsSummary() {
         const expenseTx = this.state.transactions.filter((t) => t.type === 'expense');
-        const incomeTx = this.state.transactions.filter((t) => t.type === 'income');
-        const totalExpense = expenseTx.reduce((sum, t) => sum + parseFloat(t.amount), 0);
-        const totalIncome = incomeTx.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+        const totalExpense = this.getTotalExpense();
+        const totalIncome = this.getAvailableIncome();
 
         const days = new Set(this.state.transactions.map((t) => t.date)).size || 1;
         const avgDailyExpense = totalExpense / days;
@@ -692,7 +723,7 @@ export class ExpenseApp {
             variant: 'undo',
             badge: 'Deleted',
             title: 'Transaction removed',
-            subtitle: `${tx.category || 'Uncategorized'} • ${formatCurrency(tx.amount, this.state.user?.currency)} • Undo in 8s`,
+            subtitle: `${tx.category || 'Uncategorized'} - ${formatCurrency(tx.amount, this.state.user?.currency)} - Undo in 8s`,
             actionLabel: 'Undo',
             onAction: () => this.undoDeletedTransaction(undoToken)
         });
@@ -774,7 +805,7 @@ export class ExpenseApp {
                     variant: 'undo',
                     badge: 'Deleted',
                     title: 'Goal removed',
-                    subtitle: `${goal.name} • ₹${parseFloat(goal.current_amount || 0).toLocaleString('en-IN')} saved`,
+                    subtitle: `${goal.name} - Rs ${parseFloat(goal.current_amount || 0).toLocaleString('en-IN')} saved`,
                 });
             } catch (error) {
                 toast.error(error.message || 'Failed to delete goal');
@@ -823,7 +854,7 @@ export class ExpenseApp {
     }
 
     openBudgetModal(prefill = {}) {
-        const categories = CATEGORY_OPTIONS.expense || [];
+        const categories = this.state.categories?.expense || [];
         const defaultMonth = prefill.month || this.state.budgetMonth || new Date().toISOString().slice(0, 7);
         const selectedCategory = prefill.category || categories[0] || '';
         const selectedAmount = prefill.amount || '';
@@ -1082,7 +1113,7 @@ export class ExpenseApp {
                         <div class="px-6 py-5">
                             <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">Amount</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">${formatCurrency(0, this.state.user?.currency).replace(/[0.,\s]/g, '') || '₹'}</span>
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">${formatCurrency(0, this.state.user?.currency).replace(/[0.,\s]/g, '') || 'Rs'}</span>
                                 <input id="amountPromptInput" type="number" min="0.01" step="0.01" class="form-input pl-8" placeholder="${placeholder}">
                             </div>
                         </div>
@@ -1210,7 +1241,7 @@ export class ExpenseApp {
         if (!select) return;
 
         const prev = select.value;
-        const options = CATEGORY_OPTIONS[type] || [];
+        const options = this.state.categories?.[type] || [];
         select.innerHTML = '<option value="">Select a category</option>' + options.map((opt) => `<option value="${opt}">${opt}</option>`).join('');
 
         if (options.includes(prev)) select.value = prev;
@@ -1396,3 +1427,4 @@ export class ExpenseApp {
 }
 
 export { loading, toast, formatCurrency };
+

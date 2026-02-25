@@ -12,6 +12,14 @@ ALLOWED_EXPENSE_CATEGORIES = {
     'Healthcare',
     'Education',
     'Other Expense',
+    'Savings',
+}
+ALLOWED_INCOME_CATEGORIES = {
+    'Salary',
+    'Freelance',
+    'Investment',
+    'Gift',
+    'Other Income',
 }
 GOAL_COLOR_ALIASES = {
     'bg-sky-500': 'bg-blue-500',
@@ -39,8 +47,20 @@ def _require(data, fields):
 def validate_transaction_payload(data):
     _require(data, ['type', 'amount', 'category', 'date'])
 
-    if data['type'] not in ALLOWED_TRANSACTION_TYPES:
+    tx_type = str(data['type']).strip()
+    if tx_type not in ALLOWED_TRANSACTION_TYPES:
         raise ValueError("Invalid transaction type")
+    data['type'] = tx_type
+
+    category = str(data.get('category', '')).strip()
+    if not category:
+        raise ValueError("Category is required")
+
+    if tx_type == 'expense' and category not in ALLOWED_EXPENSE_CATEGORIES:
+        raise ValueError("Unsupported expense category")
+    if tx_type == 'income' and category not in ALLOWED_INCOME_CATEGORIES:
+        raise ValueError("Unsupported income category")
+    data['category'] = category
 
     try:
         data['amount'] = float(data['amount'])
@@ -54,6 +74,10 @@ def validate_transaction_payload(data):
         date.fromisoformat(data['date'])
     except (TypeError, ValueError) as e:
         raise ValueError("Date must be in YYYY-MM-DD format") from e
+
+    method = str(data.get('method', 'Cash')).strip()
+    data['method'] = method or 'Cash'
+    data['description'] = str(data.get('description') or '').strip()
 
     return data
 
@@ -110,9 +134,8 @@ def validate_budget_payload(data):
     category = str(data.get('category', '')).strip()
     if not category:
         raise ValueError("Category is required")
-    if category not in ALLOWED_EXPENSE_CATEGORIES:
-        raise ValueError("Unsupported budget category")
     data['category'] = category
+
 
     try:
         data['amount'] = float(data['amount'])
@@ -132,4 +155,3 @@ def validate_budget_payload(data):
     data['month'] = month
 
     return data
-

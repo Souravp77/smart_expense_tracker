@@ -1,6 +1,7 @@
 CREATE DATABASE IF NOT EXISTS expense_db;
 USE expense_db;
 
+DROP VIEW IF EXISTS user_finance_summary;
 DROP TABLE IF EXISTS transactions;
 DROP TABLE IF EXISTS savings_goals;
 DROP TABLE IF EXISTS budgets;
@@ -58,6 +59,26 @@ CREATE TABLE budgets (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+CREATE OR REPLACE VIEW user_finance_summary AS
+SELECT
+    u.user_id,
+    COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'income'), 0) AS total_income_recorded,
+    COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'expense'), 0) AS total_expense,
+    COALESCE((SELECT SUM(g.current_amount) FROM savings_goals g WHERE g.user_id = u.user_id), 0) AS allocated_savings,
+    (
+        COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'income'), 0) -
+        COALESCE((SELECT SUM(g.current_amount) FROM savings_goals g WHERE g.user_id = u.user_id), 0)
+    ) AS available_income,
+    (
+        (
+            COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'income'), 0) -
+            COALESCE((SELECT SUM(g.current_amount) FROM savings_goals g WHERE g.user_id = u.user_id), 0)
+        ) -
+        COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'expense'), 0)
+    ) AS available_balance
+FROM users u;
+
+
 INSERT INTO categories (user_id, name, type) VALUES
 (NULL, 'Salary', 'income'),
 (NULL, 'Freelance', 'income'),
@@ -68,7 +89,9 @@ INSERT INTO categories (user_id, name, type) VALUES
 (NULL, 'Entertainment', 'expense'),
 (NULL, 'Bills & Utilities', 'expense'),
 (NULL, 'Healthcare', 'expense'),
-(NULL, 'Education', 'expense');
+(NULL, 'Education', 'expense'),
+(NULL, 'Savings', 'expense');
+
 
 INSERT INTO users (username, email, password_hash) VALUES
 ('Demo User', 'demo@example.com', '$2b$12$jAJ/UDnvehDkOfVUxGY/LOBcsSkyDWlRtzgHfLUUu713d4sAok1TC');

@@ -6,7 +6,7 @@ export function renderDashboardView(app, container) {
         <div class="space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 ${app.renderStatCard('Total Balance', stats.balance, 'fa-wallet', 'bg-blue-500')}
-                ${app.renderStatCard('Income', stats.totalIncome, 'fa-arrow-trend-up', 'bg-green-500')}
+                ${app.renderStatCard('Available Income', stats.totalIncome, 'fa-arrow-trend-up', 'bg-green-500')}
                 ${app.renderStatCard('Expenses', stats.totalExpense, 'fa-arrow-trend-down', 'bg-red-500')}
                 ${app.renderStatCard('Savings Rate', stats.savingsRate + '%', 'fa-piggy-bank', 'bg-blue-700')}
             </div>

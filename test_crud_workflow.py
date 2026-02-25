@@ -30,6 +30,9 @@ def test_crud():
         with client.session_transaction() as sess:
             sess['_user_id'] = str(user_id)
             sess['_fresh'] = True
+            sess['_csrf_token'] = 'test-csrf-token'
+
+        csrf_headers = {'X-CSRF-Token': 'test-csrf-token'}
 
         print("\n--- Starting CRUD Tests ---")
 
@@ -44,7 +47,7 @@ def test_crud():
             'date': '2026-02-24',
             'method': 'Cash'
         }
-        resp = client.post('/api/transactions', json=tx_data)
+        resp = client.post('/api/transactions', json=tx_data, headers=csrf_headers)
         print(f"POST /api/transactions: {resp.status_code}")
         tx_id = resp.get_json()['id']
         
@@ -56,7 +59,7 @@ def test_crud():
 
         # Update
         tx_data['amount'] = 75.0
-        resp = client.put(f'/api/transactions/{tx_id}', json=tx_data)
+        resp = client.put(f'/api/transactions/{tx_id}', json=tx_data, headers=csrf_headers)
         print(f"PUT /api/transactions/{tx_id}: {resp.status_code}")
         
         # Verify in DB
@@ -66,7 +69,7 @@ def test_crud():
             print(f"DB Verification (Update): {'SUCCESS' if db_tx and db_tx['amount'] == 75.0 else 'FAILED'}")
 
         # Delete
-        resp = client.delete(f'/api/transactions/{tx_id}')
+        resp = client.delete(f'/api/transactions/{tx_id}', headers=csrf_headers)
         print(f"DELETE /api/transactions/{tx_id}: {resp.status_code}")
         
         # Verify in DB
@@ -85,7 +88,7 @@ def test_crud():
             'color': 'bg-blue-500',
             'deadline': '2026-12-31'
         }
-        resp = client.post('/api/goals', json=goal_data)
+        resp = client.post('/api/goals', json=goal_data, headers=csrf_headers)
         print(f"POST /api/goals: {resp.status_code}")
         goal_id = resp.get_json()['id']
         
@@ -97,7 +100,7 @@ def test_crud():
 
         # Update
         goal_data['target'] = 1200.0
-        resp = client.put(f'/api/goals/{goal_id}', json=goal_data)
+        resp = client.put(f'/api/goals/{goal_id}', json=goal_data, headers=csrf_headers)
         print(f"PUT /api/goals/{goal_id}: {resp.status_code}")
         
         # Verify in DB
@@ -107,7 +110,7 @@ def test_crud():
             print(f"DB Verification (Update): {'SUCCESS' if db_goal and db_goal['target_amount'] == 1200.0 else 'FAILED'}")
 
         # Delete
-        resp = client.delete(f'/api/goals/{goal_id}')
+        resp = client.delete(f'/api/goals/{goal_id}', headers=csrf_headers)
         print(f"DELETE /api/goals/{goal_id}: {resp.status_code}")
         
         # Verify in DB
@@ -124,7 +127,7 @@ def test_crud():
             'amount': 200.0,
             'month': '2026-03'
         }
-        resp = client.post('/api/budgets', json=budget_data)
+        resp = client.post('/api/budgets', json=budget_data, headers=csrf_headers)
         print(f"POST /api/budgets (Create): {resp.status_code}")
         
         # Verify in DB
@@ -136,7 +139,7 @@ def test_crud():
 
         # Update (Upsert)
         budget_data['amount'] = 250.0
-        resp = client.post('/api/budgets', json=budget_data)
+        resp = client.post('/api/budgets', json=budget_data, headers=csrf_headers)
         print(f"POST /api/budgets (Update): {resp.status_code}")
         
         # Verify in DB

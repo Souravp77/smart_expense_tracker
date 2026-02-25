@@ -1,4 +1,4 @@
-from flask import jsonify
+from flask import current_app, jsonify
 
 
 def ok(payload):
@@ -13,5 +13,11 @@ def bad_request(error):
     return jsonify({'error': str(error)}), 400
 
 
-def server_error(error):
-    return jsonify({'error': str(error)}), 500
+def not_found(message='Resource not found'):
+    return jsonify({'error': str(message)}), 404
+
+
+def server_error(error=None):
+    if error is not None:
+        current_app.logger.exception('Unhandled API error: %s', error)
+    return jsonify({'error': 'Internal server error'}), 500

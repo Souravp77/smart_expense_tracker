@@ -1,18 +1,19 @@
-import requests
+from app import create_app
+from config import Config
 
-# We need to simulate a logged in user.
-# But just checking if the route exists should return 405 (Method Not Allowed) if we use GET,
-# or 401/302 if we use POST without auth.
-# If it returns 404, then the route is truly missing.
 
-url = "http://localhost:5000/api/budgets"
-try:
-    # Try POST - should return 401 or redirect to login (302) if auth is required
-    r = requests.post(url)
-    print(f"POST {url} status: {r.status_code}")
-    
-    # Try GET - should return 405 or 404
-    r = requests.get(url)
-    print(f"GET {url} status: {r.status_code}")
-except Exception as e:
-    print(f"Error: {e}")
+class TestConfig(Config):
+    TESTING = True
+
+
+def test_budgets_api_route_exists_and_is_protected():
+    app = create_app(TestConfig)
+    client = app.test_client()
+
+    # Route exists and requires auth for POST.
+    post_resp = client.post('/api/budgets', json={})
+    assert post_resp.status_code in (302, 401), post_resp.get_data(as_text=True)
+
+    # GET is not defined for this endpoint (method should be rejected, not 404).
+    get_resp = client.get('/api/budgets')
+    assert get_resp.status_code == 405, get_resp.get_data(as_text=True)
