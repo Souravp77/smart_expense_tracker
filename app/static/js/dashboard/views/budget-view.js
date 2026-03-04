@@ -1,16 +1,14 @@
-import { CATEGORY_OPTIONS } from '../constants.js';
 import { escapeHtml, formatCurrency } from '../utils.js';
 
 const CATEGORY_ICONS = {
     'Food & Dining': { icon: 'fa-utensils', color: '#f59e0b' },
-    Transportation: { icon: 'fa-bus', color: '#3b82f6' },
     Shopping: { icon: 'fa-bag-shopping', color: '#ec4899' },
     Entertainment: { icon: 'fa-film', color: '#8b5cf6' },
-    'Bills & Utilities': { icon: 'fa-file-invoice-dollar', color: '#ef4444' },
-    Healthcare: { icon: 'fa-heart-pulse', color: '#10b981' },
-    Education: { icon: 'fa-graduation-cap', color: '#6366f1' },
+    'Travel / Outings': { icon: 'fa-plane-departure', color: '#0ea5e9' },
+    'Personal Care': { icon: 'fa-spa', color: '#14b8a6' },
+    Parties: { icon: 'fa-champagne-glasses', color: '#f43f5e' },
+    Subscriptions: { icon: 'fa-repeat', color: '#6366f1' },
     'Other Expense': { icon: 'fa-layer-group', color: '#64748b' },
-    Savings: { icon: 'fa-piggy-bank', color: '#0ea5e9' },
 };
 
 
@@ -29,15 +27,15 @@ function monthLabel(month) {
 
 function getUsageTone(usage) {
     if (usage > 100) return 'tone-over';
-    if (usage >= 86) return 'tone-danger';
-    if (usage >= 61) return 'tone-warn';
+    if (usage >= 90) return 'tone-danger';
+    if (usage >= 70) return 'tone-warn';
     return 'tone-safe';
 }
 
 function getBadgeClass(usage) {
     if (usage > 100) return 'badge-over';
-    if (usage >= 86) return 'badge-danger';
-    if (usage >= 61) return 'badge-warn';
+    if (usage >= 90) return 'badge-danger';
+    if (usage >= 70) return 'badge-warn';
     return 'badge-safe';
 }
 
@@ -54,13 +52,22 @@ export function renderBudgetView(app, container) {
     const currentMonth = app.state.budgetMonth || new Date().toISOString().slice(0, 7);
     if (!app.state.budgetMonth) app.state.budgetMonth = currentMonth;
 
-    const categories = app.state.categories?.expense || [];
-    const monthBudgets = app.state.budgets.filter((b) => b.month === currentMonth);
+    const categories = typeof app.getBudgetCategories === 'function'
+        ? app.getBudgetCategories()
+        : (app.state.categories?.expense || []);
+    const allowedCategorySet = new Set(categories);
+    const monthBudgets = app.state.budgets.filter(
+        (b) => b.month === currentMonth && allowedCategorySet.has(b.category)
+    );
     const budgetMap = new Map(monthBudgets.map((b) => [b.category, toNumber(b.amount)]));
 
     const spentMap = new Map();
     app.state.transactions
-        .filter((tx) => tx.type === 'expense' && String(tx.date || '').startsWith(currentMonth))
+        .filter((tx) =>
+            tx.type === 'expense' &&
+            String(tx.date || '').startsWith(currentMonth) &&
+            allowedCategorySet.has(tx.category)
+        )
         .forEach((tx) => {
             const key = tx.category;
             spentMap.set(key, (spentMap.get(key) || 0) + toNumber(tx.amount));
@@ -106,29 +113,19 @@ export function renderBudgetView(app, container) {
                 warningItems.push({
                     type: 'danger',
                     icon: 'fa-circle-exclamation',
-                    text: `${category} exceeded by ${formatCurrency(Math.abs(remaining), app.state.user?.currency)}.`,
+                    text: `${category} is over budget by ${formatCurrency(Math.abs(remaining), app.state.user?.currency)}. Consider adjusting next month or reducing spend this month.`,
                 });
-            } else if (categoryUsage >= 85) {
+            } else if (categoryUsage >= 80) {
                 warningItems.push({
                     type: 'warning',
                     icon: 'fa-triangle-exclamation',
-                    text: `${category} budget is almost exhausted (${categoryUsage}% used).`,
+                    text: `You've used ${categoryUsage}% of your ${category} budget.`,
                 });
-            }
-
-            // Pacing only for current month. Skip first 5 days to avoid false alarms from monthly fixed costs.
-            if (!isPastMonth && !isFutureMonth && spent > 0 && effectiveToday > 5 && categoryUsage < 100) {
-                const dailyPace = spent / effectiveToday;
-                const projectedSpent = dailyPace * lastDayOfMonth;
-                // Only alert if projected spend is > 10% over budget
-                if (projectedSpent > budget * 1.1) {
-                    const daysToLimit = Math.floor((budget - spent) / dailyPace);
-                    warningItems.push({
-                        type: 'info',
-                        icon: 'fa-chart-line',
-                        text: `At current pace, ${category} may exceed budget in ${daysToLimit + 1} days.`,
-                    });
-                }
+                warningItems.push({
+                    type: 'info',
+                    icon: 'fa-wallet',
+                    text: `Only ${formatCurrency(remaining, app.state.user?.currency)} left in ${category}.`,
+                });
             }
         }
 
@@ -145,7 +142,7 @@ export function renderBudgetView(app, container) {
                             <span>${budget > 0 ? `${categoryUsage}% used` : 'No budget set'}</span>
                         </div>
                     </div>
-                    ${budget > 0 ? `<span class="budget-card-badge ${badge}">${categoryUsage > 100 ? 'Over' : categoryUsage >= 85 ? 'Limited' : 'Safe'}</span>` : ''}
+                    ${budget > 0 ? `<span class="budget-card-badge ${badge}">${categoryUsage > 100 ? 'Over' : categoryUsage >= 90 ? 'Danger' : categoryUsage >= 70 ? 'Warning' : 'Safe'}</span>` : ''}
                 </div>
 
                 <div class="budget-card-amounts">
@@ -199,9 +196,9 @@ export function renderBudgetView(app, container) {
                     <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400">
                         <i class="fas fa-wallet"></i>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-black tracking-tight">Financial Guardrails</h3>
-                        <p class="text-[12px] font-semibold text-slate-500">${monthLabel(currentMonth)}</p>
+                    <div class="ui-page-head">
+                        <h3 class="ui-page-title">Financial Guardrails</h3>
+                        <p class="ui-page-subtitle">${monthLabel(currentMonth)}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -209,10 +206,6 @@ export function renderBudgetView(app, container) {
                         <i class="far fa-calendar-alt text-slate-400"></i>
                         <input type="month" value="${currentMonth}" class="budget-month-input" onchange="app.changeBudgetMonth(this.value)">
                     </div>
-                    <button onclick="app.openBudgetModal({ month: '${currentMonth}' })" class="btn-primary shadow-lg">
-                        <i class="fas fa-sliders"></i>
-                        <span class="hidden sm:inline">Set Limits</span>
-                    </button>
                 </div>
             </header>
 
@@ -275,7 +268,7 @@ export function renderBudgetView(app, container) {
                     <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
                         <i class="fas fa-brain"></i>
                     </div>
-                    <h4 class="font-black tracking-tight">Smart Analysis</h4>
+                    <h4 class="font-black tracking-tight">Budget Coach</h4>
                 </div>
                 <div class="budget-alert-list">
                     ${warningItems.length ? warningItems.map((item) => `
@@ -287,7 +280,7 @@ export function renderBudgetView(app, container) {
                                 ${escapeHtml(item.text)}
                             </div>
                         </div>
-                    `).join('') : '<p class="text-sm font-bold text-slate-400 tracking-tight">No anomalies detected. Your spending is within parameters.</p>'}
+                    `).join('') : '<p class="text-sm font-bold text-slate-400 tracking-tight">Great discipline so far. Keep your spending pace steady.</p>'}
                 </div>
             </div>
 
@@ -297,4 +290,3 @@ export function renderBudgetView(app, container) {
         </div>
     `;
 }
-

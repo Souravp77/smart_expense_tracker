@@ -1,6 +1,6 @@
 export const CATEGORY_OPTIONS = {
-    expense: ['Food & Dining', 'Transportation', 'Shopping', 'Entertainment', 'Bills & Utilities', 'Healthcare', 'Education', 'Other Expense'],
-    income: ['Salary', 'Freelance', 'Investment', 'Gift', 'Other Income']
+    expense: ['Food & Dining', 'Shopping', 'Entertainment', 'Travel / Outings', 'Personal Care', 'Parties', 'Subscriptions', 'Other Expense'],
+    income: ['Salary', 'Freelance', 'Investment', 'Gift']
 };
 
 export const PERIOD_RANGES = {

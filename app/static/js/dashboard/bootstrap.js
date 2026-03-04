@@ -19,6 +19,19 @@ function bindResponsiveShell() {
 }
 
 function bindForms() {
+    const showGoalError = (message = '') => {
+        const box = document.getElementById('goalModalError');
+        const text = document.getElementById('goalModalErrorText');
+        if (!box || !text) return;
+        if (!message) {
+            box.style.display = 'none';
+            text.textContent = '';
+            return;
+        }
+        text.textContent = message;
+        box.style.display = 'flex';
+    };
+
     const txForm = document.getElementById('transactionForm');
     if (txForm) {
         txForm.addEventListener('submit', (e) => {
@@ -61,9 +74,11 @@ function bindForms() {
             const targetAmount = parseFloat(data.target);
             const currentAmount = parseFloat(data.current);
             if (Number.isFinite(targetAmount) && Number.isFinite(currentAmount) && currentAmount > targetAmount) {
+                showGoalError('Initial amount cannot be greater than target amount');
                 toast.error('Initial amount cannot be greater than target amount');
                 return;
             }
+            showGoalError('');
 
             loading.with(async () => {
                 try {
@@ -80,6 +95,7 @@ function bindForms() {
                     window.goalModal.close();
                     await window.app.fetchData();
                 } catch (error) {
+                    showGoalError(error.message || 'Goal save failed');
                     toast.error(error.message || 'Goal save failed');
                     console.error(error);
                 }

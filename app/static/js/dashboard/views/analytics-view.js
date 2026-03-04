@@ -47,9 +47,9 @@ export function renderAnalyticsView(app, container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div>
-                <h3 class="text-2xl font-bold">Analytics</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Break down trends, spending patterns, and monthly savings performance.</p>
+            <div class="ui-page-head">
+                <h3 class="ui-page-title">Analytics</h3>
+                <p class="ui-page-subtitle">Break down trends, spending patterns, and monthly savings performance.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -59,12 +59,12 @@ export function renderAnalyticsView(app, container) {
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="glass rounded-2xl p-6"><h4 class="font-semibold mb-3">Income vs Expense</h4><div class="chart-container"><canvas id="analyticsTrendChart"></canvas></div></div>
-                <div class="glass rounded-2xl p-6"><h4 class="font-semibold mb-3">Category Distribution</h4><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
+                <div class="glass rounded-2xl p-6 ui-panel"><h4 class="ui-panel-title mb-3">Income vs Expense</h4><div class="chart-container"><canvas id="analyticsTrendChart"></canvas></div></div>
+                <div class="glass rounded-2xl p-6 ui-panel"><h4 class="ui-panel-title mb-3">Category Distribution</h4><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
             </div>
 
-            <div class="glass rounded-2xl p-6 overflow-x-auto">
-                <h4 class="font-semibold mb-3">Monthly Summary</h4>
+            <div class="glass rounded-2xl p-6 overflow-x-auto ui-panel">
+                <h4 class="ui-panel-title mb-3">Monthly Summary</h4>
                 <table class="data-table">
                     <thead><tr><th>Month</th><th>Income</th><th>Expense</th><th>Savings</th><th>Savings Rate</th></tr></thead>
                     <tbody>
@@ -73,8 +73,8 @@ export function renderAnalyticsView(app, container) {
                 </table>
             </div>
 
-            <div class="glass rounded-2xl p-6">
-                <h4 class="font-semibold mb-3">Savings Goals Analytics</h4>
+            <div class="glass rounded-2xl p-6 ui-panel">
+                <h4 class="ui-panel-title mb-3">Savings Goals Analytics</h4>
                 <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
                     <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3"><p class="text-xs text-slate-500">Goals</p><p class="text-lg font-bold">${goalStats.total}</p></div>
                     <div class="rounded-xl border border-slate-200 dark:border-slate-700 p-3"><p class="text-xs text-slate-500">Completed</p><p class="text-lg font-bold">${goalStats.completed}</p></div>

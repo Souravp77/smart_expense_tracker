@@ -121,7 +121,8 @@ export const toast = {
     },
     success(message) { this.show(message, 'success'); },
     error(message) { this.show(message, 'error'); },
-    warning(message) { this.show(message, 'warning'); }
+    warning(message) { this.show(message, 'warning'); },
+    info(message) { this.show(message, 'info'); }
 };
 
 export const loading = {

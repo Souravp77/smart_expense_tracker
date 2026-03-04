@@ -3,6 +3,7 @@ export const modal = {
     open() {
         const form = document.getElementById('transactionForm');
         if (form) form.reset();
+        window.app?.showTransactionFormError('');
 
         const idInput = document.getElementById('txId');
         if (idInput) idInput.value = '';
@@ -10,8 +11,38 @@ export const modal = {
         const dateInput = document.getElementById('txDate');
         if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
-        const txTypeExpense = document.querySelector('input[name="type"][value="expense"]');
-        if (txTypeExpense) txTypeExpense.checked = true;
+        const lastType = localStorage.getItem('lastTxType') || 'expense';
+        const txType = document.querySelector(`input[name="type"][value="${lastType}"]`)
+            || document.querySelector('input[name="type"][value="expense"]');
+        if (txType) txType.checked = true;
+
+        const categoryCustom = document.getElementById('txCategoryCustom');
+        if (categoryCustom) {
+            categoryCustom.value = '';
+            categoryCustom.classList.add('hidden');
+            categoryCustom.required = false;
+        }
+
+        if (window.app) window.app.updateCategoryOptions(lastType);
+        const categorySelect = document.getElementById('txCategory');
+        const lastCategory = (localStorage.getItem('lastTxCategory') || '').trim();
+        if (categorySelect && lastCategory) {
+            const knownCategory = Array.from(categorySelect.options).some((o) => o.value === lastCategory);
+            if (knownCategory) {
+                categorySelect.value = lastCategory;
+            } else {
+                categorySelect.value = '__custom__';
+                if (categoryCustom) categoryCustom.value = lastCategory;
+            }
+            window.app?.syncCustomCategoryInput();
+        }
+
+        const methodSelect = document.getElementById('txMethod');
+        if (methodSelect) {
+            const lastMethod = (localStorage.getItem('lastTxMethod') || 'Cash').trim();
+            const knownMethod = Array.from(methodSelect.options).some((o) => o.value === lastMethod);
+            methodSelect.value = knownMethod ? lastMethod : 'Cash';
+        }
 
         const el = this.element();
         if (el) el.style.display = 'flex';
@@ -29,9 +60,25 @@ export const modal = {
         radios.forEach((r) => { r.checked = r.value === tx.type; });
 
         if (window.app) window.app.updateCategoryOptions(tx.type);
-
-        document.getElementById('txCategory').value = tx.category;
-        document.getElementById('txMethod').value = tx.method || 'Cash';
+        const categorySelect = document.getElementById('txCategory');
+        const categoryCustom = document.getElementById('txCategoryCustom');
+        if (categorySelect && categoryCustom) {
+            const knownCategory = Array.from(categorySelect.options).some((o) => o.value === tx.category);
+            if (knownCategory) {
+                categorySelect.value = tx.category;
+                categoryCustom.value = '';
+            } else {
+                categorySelect.value = '__custom__';
+                categoryCustom.value = tx.category || '';
+            }
+            window.app?.syncCustomCategoryInput();
+        }
+        const methodSelect = document.getElementById('txMethod');
+        if (methodSelect) {
+            const normalizedMethod = (tx.method || '').trim() || 'Cash';
+            const knownMethod = Array.from(methodSelect.options).some((o) => o.value === normalizedMethod);
+            methodSelect.value = knownMethod ? normalizedMethod : 'Other';
+        }
 
         const el = this.element();
         if (el) el.style.display = 'flex';
@@ -39,6 +86,7 @@ export const modal = {
     close() {
         const el = this.element();
         if (el) el.style.display = 'none';
+        window.app?.showTransactionFormError('');
     }
 };
 
@@ -58,6 +106,10 @@ export const goalModal = {
     open() {
         const form = document.getElementById('goalForm');
         if (form) form.reset();
+        const errorBox = document.getElementById('goalModalError');
+        if (errorBox) errorBox.style.display = 'none';
+        const errorText = document.getElementById('goalModalErrorText');
+        if (errorText) errorText.textContent = '';
         const title = document.getElementById('goalModalTitle');
         if (title) title.textContent = 'Create New Goal';
         // Update save button text
@@ -92,6 +144,10 @@ export const goalModal = {
     openForEdit(goal) {
         const form = document.getElementById('goalForm');
         if (!form || !goal) return;
+        const errorBox = document.getElementById('goalModalError');
+        if (errorBox) errorBox.style.display = 'none';
+        const errorText = document.getElementById('goalModalErrorText');
+        if (errorText) errorText.textContent = '';
 
         const title = document.getElementById('goalModalTitle');
         if (title) title.textContent = 'Edit Savings Goal';
@@ -135,6 +191,10 @@ export const goalModal = {
     close() {
         const el = this.element();
         if (el) el.style.display = 'none';
+        const errorBox = document.getElementById('goalModalError');
+        if (errorBox) errorBox.style.display = 'none';
+        const errorText = document.getElementById('goalModalErrorText');
+        if (errorText) errorText.textContent = '';
     }
 };
 
@@ -165,5 +225,11 @@ export function bindTransactionTypeSwitch() {
             window.app.updateCategoryOptions(radio.value);
         });
     });
-}
 
+    const categorySelect = document.getElementById('txCategory');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', () => {
+            window.app?.syncCustomCategoryInput();
+        });
+    }
+}

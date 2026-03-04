@@ -12,7 +12,8 @@ from app.utils.validators import validate_transaction_payload
 @login_required
 def list_transactions():
     search = request.args.get('q')
-    limit = request.args.get('limit', 1000, type=int)
+    raw_limit = request.args.get('limit', 1000, type=int)
+    limit = max(1, min(raw_limit or 1000, 2000))
     transactions = get_transactions(current_user.id, search, limit)
     return ok({'transactions': transactions})
 
@@ -54,6 +55,8 @@ def remove_transaction(transaction_id):
     try:
         delete_transaction(current_user.id, transaction_id)
         return ok({'message': 'Transaction deleted'})
+    except ValueError as error:
+        return bad_request(error)
     except ResourceNotFoundError as error:
         return not_found(error)
     except Exception as error:

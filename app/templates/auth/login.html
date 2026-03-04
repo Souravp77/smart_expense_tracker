@@ -48,6 +48,7 @@
                 {% endwith %}
 
                 <form id="loginForm" method="POST" action="{{ url_for('auth.login') }}" novalidate>
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
                     <div class="form-group">
                         <div class="password-wrapper">
                             <input type="email" name="email" id="email" class="input-control" placeholder=" " required>

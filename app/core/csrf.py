@@ -24,11 +24,11 @@ def register_csrf(app):
         if request.method not in {'POST', 'PUT', 'PATCH', 'DELETE'}:
             return None
 
-        if request.blueprint != 'api':
+        if request.blueprint not in {'api', 'auth'}:
             return None
 
         expected = session.get('_csrf_token')
-        provided = request.headers.get('X-CSRF-Token')
+        provided = request.headers.get('X-CSRF-Token') or request.form.get('_csrf_token')
 
         if not expected or not provided or not secrets.compare_digest(expected, provided):
             current_app.logger.warning('CSRF validation failed for %s', request.path)

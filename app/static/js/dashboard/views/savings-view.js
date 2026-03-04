@@ -21,8 +21,9 @@ export function renderSavingsView(app, container) {
     container.innerHTML = `
         <section class="sav-module" aria-label="Savings Goals">
             <div class="budget-header glass">
-                <div>
-                    <h3 class="text-2xl font-bold">Savings Goals</h3>
+                <div class="ui-page-head">
+                    <h3 class="ui-page-title">Savings Goals</h3>
+                    <p class="ui-page-subtitle">Track progress and keep goals moving each month.</p>
                 </div>
                 <button onclick="goalModal.open()" class="btn-primary"><i class="fas fa-plus"></i> New Goal</button>
             </div>

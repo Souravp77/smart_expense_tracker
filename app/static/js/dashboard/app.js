@@ -10,6 +10,7 @@ import { CATEGORY_OPTIONS, CHART_COLORS } from './constants.js';
 import { bindDatabaseSync } from './sync.js';
 import { filterByPeriod, monthLabel, toISODate } from './time-utils.js';
 import { escapeHtml, formatCurrency, formatDate, loading, toast } from './utils.js';
+import { NotificationManager } from './notifications.js';
 
 const GOAL_COLOR_PROFILES = {
     'bg-blue-500': { solid: '#2563eb', soft: 'rgba(37,  99, 235, 0.14)' },
@@ -41,6 +42,8 @@ export class ExpenseApp {
             budgetMonth: new Date().toISOString().slice(0, 7),
             filterType: 'all',
             filterSearch: '',
+            filterCategory: 'all',
+            filterMonth: '',
             pagination: { page: 1, limit: 8 },
             dashboardTrendPeriod: 'week',
             dashboardBreakdownPeriod: 'month',
@@ -93,6 +96,13 @@ export class ExpenseApp {
         }
 
         if (!response.ok) {
+            if (response.status === 401) {
+                const loginUrl = (window.APP_CONFIG && window.APP_CONFIG.loginUrl) || '/login';
+                const next = encodeURIComponent(window.location.pathname || '/');
+                window.location.href = `${loginUrl}?next=${next}`;
+                throw new Error('Authentication required');
+            }
+
             // If the app is deployed under a subpath, absolute `/api/...` calls may 404.
             // Retry once with a relative api path so it resolves under the current base path.
             if (
@@ -120,8 +130,37 @@ export class ExpenseApp {
         this.applyTheme();
         this.updateDate();
         this.closeSidebar();
+        this.renderInitialSkeleton();
+
+        this.notifications = new NotificationManager(this);
+
         await this.fetchData();
+
+        // Start notification polling every 60s
+        this.notifications.fetchNotifications();
+        setInterval(() => this.notifications.fetchNotifications(), 60000);
+
         bindDatabaseSync(this);
+    }
+
+    renderInitialSkeleton() {
+        const content = document.getElementById('appContent');
+        if (!content) return;
+        content.innerHTML = `
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="ui-skeleton-card"></div>
+                    <div class="ui-skeleton-card"></div>
+                    <div class="ui-skeleton-card"></div>
+                    <div class="ui-skeleton-card"></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="ui-skeleton-panel"></div>
+                    <div class="ui-skeleton-panel"></div>
+                </div>
+                <div class="ui-skeleton-panel h-56"></div>
+            </div>
+        `;
     }
 
     async fetchData() {
@@ -210,6 +249,11 @@ export class ExpenseApp {
         });
 
         if (!confirmed) return;
+        const form = document.getElementById('logoutForm');
+        if (form) {
+            form.submit();
+            return;
+        }
         window.location.href = (window.APP_CONFIG && window.APP_CONFIG.logoutUrl) || '/logout';
     }
 
@@ -342,6 +386,27 @@ export class ExpenseApp {
         if (this.state.activeTab === 'transactions') this.render();
     }
 
+    setTransactionCategory(category) {
+        this.state.filterCategory = category || 'all';
+        this.state.pagination.page = 1;
+        if (this.state.activeTab === 'transactions') this.render();
+    }
+
+    setTransactionMonth(month) {
+        this.state.filterMonth = month || '';
+        this.state.pagination.page = 1;
+        if (this.state.activeTab === 'transactions') this.render();
+    }
+
+    resetTransactionFilters() {
+        this.state.filterType = 'all';
+        this.state.filterSearch = '';
+        this.state.filterCategory = 'all';
+        this.state.filterMonth = '';
+        this.state.pagination.page = 1;
+        if (this.state.activeTab === 'transactions') this.render();
+    }
+
     changeTransactionPage(direction) {
         const { totalPages } = this.getPaginatedTransactions();
         const nextPage = this.state.pagination.page + direction;
@@ -353,12 +418,16 @@ export class ExpenseApp {
     getFilteredTransactions() {
         const search = this.state.filterSearch;
         const type = this.state.filterType;
+        const category = this.state.filterCategory || 'all';
+        const month = this.state.filterMonth || '';
 
         return this.state.transactions.filter((t) => {
             const matchesType = type === 'all' || t.type === type;
+            const matchesCategory = category === 'all' || t.category === category;
+            const matchesMonth = !month || String(t.date || '').startsWith(month);
             const haystack = `${t.description || ''} ${t.category || ''}`.toLowerCase();
             const matchesSearch = !search || haystack.includes(search);
-            return matchesType && matchesSearch;
+            return matchesType && matchesCategory && matchesMonth && matchesSearch;
         });
     }
 
@@ -372,31 +441,81 @@ export class ExpenseApp {
         return { items: paged, total: items.length, page, totalPages };
     }
 
-    renderStatCard(title, value, icon, color) {
+    renderStatCard(title, value, icon, color, options = {}) {
+        const {
+            subtitle = '',
+            valueClass = ''
+        } = options;
         const displayValue = (typeof value === 'number' && Number.isFinite(value))
             ? formatCurrency(value, this.state.user?.currency)
             : escapeHtml(String(value ?? '-'));
-        return `<div class="stat-card glass rounded-2xl p-6"><div class="flex justify-between"><div><p class="text-sm text-slate-500">${title}</p><h3 class="text-2xl font-bold">${displayValue}</h3></div><div class="w-12 h-12 rounded-xl ${color} bg-opacity-20 flex items-center justify-center"><i class="fas ${icon} ${color.replace('bg-', 'text-')}"></i></div></div></div>`;
+        return `
+            <div class="stat-card glass rounded-2xl p-6">
+                <div class="flex justify-between gap-4">
+                    <div class="min-w-0">
+                        <p class="text-sm text-slate-500">${title}</p>
+                        <h3 class="text-2xl font-bold ${valueClass}">${displayValue}</h3>
+                        ${subtitle ? `<p class="mt-1 text-xs text-slate-400">${escapeHtml(subtitle)}</p>` : ''}
+                    </div>
+                    <div class="w-12 h-12 rounded-xl ${color} bg-opacity-20 flex items-center justify-center shrink-0">
+                        <i class="fas ${icon} ${color.replace('bg-', 'text-')}"></i>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     renderTransactionRow(t, clickable = false) {
-        const click = clickable ? `onclick="app.editTransaction(${t.id})" class="cursor-pointer hover:bg-blue-50/30 dark:hover:bg-slate-800/30"` : '';
-        return `<tr ${click}><td>${escapeHtml(t.description)}</td><td><span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${escapeHtml(t.category)}</span></td><td class="text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${formatCurrency(t.amount, this.state.user?.currency)}</td></tr>`;
+        const canEdit = !this.isSystemGoalAuditTransaction(t);
+        const click = clickable && canEdit ? `onclick="app.editTransaction(${t.id})" class="cursor-pointer hover:bg-blue-50/30 dark:hover:bg-slate-800/30"` : '';
+        return `<tr ${click}><td>${escapeHtml(t.description)}${this.renderSystemAuditBadge(t)}</td><td><span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${escapeHtml(t.category)}</span></td><td class="text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${formatCurrency(t.amount, this.state.user?.currency)}</td></tr>`;
     }
 
     renderFullTransactionRow(t) {
+        const isSystem = this.isSystemGoalAuditTransaction(t);
+        const actions = isSystem
+            ? '<span class="text-xs text-slate-400">System</span>'
+            : `<button onclick="app.editTransaction(${t.id})" class="text-blue-500 mr-2" aria-label="Edit transaction"><i class="fas fa-edit"></i></button>
+                <button onclick="app.deleteTransaction(${t.id})" class="text-rose-500" aria-label="Delete transaction"><i class="fas fa-trash"></i></button>`;
         return `<tr>
             <td>${formatDate(t.date)}</td>
-            <td>${escapeHtml(t.description)}</td>
+            <td>${escapeHtml(t.description)}${this.renderSystemAuditBadge(t)}</td>
             <td>${escapeHtml(t.category)}</td>
             <td><span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${t.type}</span></td>
             <td>${escapeHtml(t.method || '-')}</td>
             <td class="text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${formatCurrency(t.amount, this.state.user?.currency)}</td>
             <td class="text-right">
-                <button onclick="app.editTransaction(${t.id})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button>
-                <button onclick="app.deleteTransaction(${t.id})" class="text-rose-500"><i class="fas fa-trash"></i></button>
+                ${actions}
             </td>
         </tr>`;
+    }
+
+    renderTransactionCard(t) {
+        const isSystem = this.isSystemGoalAuditTransaction(t);
+        const actions = isSystem
+            ? '<span class="text-xs text-slate-400">System transaction</span>'
+            : `<button onclick="app.editTransaction(${t.id})" class="btn-secondary text-xs" aria-label="Edit transaction" title="Edit transaction"><i class="fas fa-pen mr-1"></i>Edit</button>
+                    <button onclick="app.deleteTransaction(${t.id})" class="btn-secondary text-xs text-rose-600 border-rose-200" aria-label="Delete transaction" title="Delete transaction"><i class="fas fa-trash mr-1"></i>Delete</button>`;
+        return `
+            <article class="tx-mobile-card">
+                <div class="tx-mobile-top">
+                    <div>
+                        <p class="tx-mobile-date">${formatDate(t.date)}</p>
+                        <h4 class="tx-mobile-title">${escapeHtml(t.description || '(No description)')}</h4>
+                        ${this.renderSystemAuditBadge(t)}
+                    </div>
+                    <span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${t.type}</span>
+                </div>
+                <div class="tx-mobile-meta">
+                    <p><span>Category</span><strong>${escapeHtml(t.category)}</strong></p>
+                    <p><span>Method</span><strong>${escapeHtml(t.method || '-')}</strong></p>
+                    <p><span>Amount</span><strong class="${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${formatCurrency(t.amount, this.state.user?.currency)}</strong></p>
+                </div>
+                <div class="tx-mobile-actions">
+                    ${actions}
+                </div>
+            </article>
+        `;
     }
 
     renderGoalCard(g) {
@@ -425,6 +544,8 @@ export class ExpenseApp {
         }
 
         const subtitleText = pct === 0 ? 'Start with your first contribution' : (deadline.text && deadline.daysLeft > 0 ? 'Keep building - deadline approaching' : 'Keep building this goal steadily');
+
+        const isCompleted = pct >= 100;
 
         return `
             <article class="goal-card ${isCelebrating ? 'goal-card-celebrate' : ''}" style="--goal-accent:${colorProfile.solid};--goal-accent-soft:${colorProfile.soft};" data-goal-id="${g.id}" data-goal-progress="${pct}" data-tone="${tone.dataTone}">
@@ -461,11 +582,11 @@ export class ExpenseApp {
                     </div>
                 </div>
                 <div class="goal-actions">
-                    <button onclick="app.addFundsToGoal(${g.id})" class="goal-add-money-btn" aria-label="Add funds to ${escapeHtml(g.name)}"><i class="fas fa-plus"></i> Add Money</button>
-                    <button onclick="app.editGoal(${g.id})" class="goal-icon-btn text-blue-600 dark:text-blue-300" aria-label="Edit ${escapeHtml(g.name)}">
+                    <button onclick="app.addFundsToGoal(${g.id})" class="goal-add-money-btn" aria-label="Add funds to ${escapeHtml(g.name)}" ${isCompleted ? 'disabled title="Goal already achieved"' : 'title="Add money"'}><i class="fas fa-plus"></i> Add Money</button>
+                    <button onclick="app.editGoal(${g.id})" class="goal-icon-btn text-blue-600 dark:text-blue-300" aria-label="Edit ${escapeHtml(g.name)}" title="Edit goal">
                         <i class="fas fa-pen"></i>
                     </button>
-                    <button onclick="app.deleteGoal(${g.id})" class="goal-icon-btn goal-delete-btn" aria-label="Delete ${escapeHtml(g.name)}">
+                    <button onclick="app.deleteGoal(${g.id})" class="goal-icon-btn goal-delete-btn" aria-label="Delete ${escapeHtml(g.name)}" title="Delete goal">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -575,11 +696,26 @@ export class ExpenseApp {
             .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
     }
 
+    isSpendingExpense(transaction) {
+        return transaction?.type === 'expense' && transaction?.category !== 'Savings';
+    }
+
+    isSystemGoalAuditTransaction(transaction) {
+        return transaction?.type === 'expense'
+            && transaction?.category === 'Savings'
+            && String(transaction?.description || '').startsWith('[Goal#');
+    }
+
+    renderSystemAuditBadge(transaction) {
+        if (!this.isSystemGoalAuditTransaction(transaction)) return '';
+        return '<span class="badge ml-2 bg-slate-100 text-slate-600 border border-slate-200">Goal Audit</span>';
+    }
+
     getTotalExpense() {
         const fromSummary = this.state.financeSummary?.totalExpense;
         if (Number.isFinite(fromSummary)) return fromSummary;
         return this.state.transactions
-            .filter((t) => t.type === 'expense')
+            .filter((t) => this.isSpendingExpense(t))
             .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
     }
 
@@ -601,9 +737,12 @@ export class ExpenseApp {
         const income = Number.isFinite(summary.availableIncome) ? summary.availableIncome : this.getAvailableIncome();
         const expense = Number.isFinite(summary.totalExpense) ? summary.totalExpense : this.getTotalExpense();
         const balance = Number.isFinite(summary.availableBalance) ? summary.availableBalance : (income - expense);
-        const savingsRate = Number.isFinite(summary.savingsRate)
-            ? summary.savingsRate
-            : (income ? Math.round(((income - expense) / income) * 100) : 0);
+        const totalIncomeRecorded = Number.isFinite(summary.totalIncomeRecorded)
+            ? summary.totalIncomeRecorded
+            : this.getTotalIncome();
+        const savingsRate = totalIncomeRecorded
+            ? Math.round((balance / totalIncomeRecorded) * 100)
+            : 0;
 
         return {
             totalIncome: income,
@@ -614,11 +753,11 @@ export class ExpenseApp {
     }
 
     getAnalyticsSummary() {
-        const expenseTx = this.state.transactions.filter((t) => t.type === 'expense');
+        const expenseTx = this.state.transactions.filter((t) => this.isSpendingExpense(t));
         const totalExpense = this.getTotalExpense();
         const totalIncome = this.getAvailableIncome();
 
-        const days = new Set(this.state.transactions.map((t) => t.date)).size || 1;
+        const days = new Set(expenseTx.map((t) => t.date)).size || 1;
         const avgDailyExpense = totalExpense / days;
 
         const byCategory = {};
@@ -639,7 +778,13 @@ export class ExpenseApp {
         this.state.transactions.forEach((t) => {
             const month = t.date.slice(0, 7);
             if (!grouped[month]) grouped[month] = { income: 0, expense: 0 };
-            grouped[month][t.type] += parseFloat(t.amount);
+            if (t.type === 'income') {
+                grouped[month].income += parseFloat(t.amount);
+                return;
+            }
+            if (this.isSpendingExpense(t)) {
+                grouped[month].expense += parseFloat(t.amount);
+            }
         });
 
         return Object.keys(grouped)
@@ -664,11 +809,15 @@ export class ExpenseApp {
             try {
                 const data = Object.fromEntries(formData);
                 data.amount = parseFloat(data.amount);
+                data.category = this.resolveTransactionCategory(data);
+                delete data.txCategoryCustom;
 
                 if (!data.category || !(data.amount > 0)) {
+                    this.showTransactionFormError('Please complete transaction details with a valid amount and category.');
                     toast.error('Please complete transaction details');
                     return;
                 }
+                this.showTransactionFormError('');
 
                 const url = data.txId ? `/api/transactions/${data.txId}` : '/api/transactions';
                 const method = data.txId ? 'PUT' : 'POST';
@@ -682,10 +831,14 @@ export class ExpenseApp {
                     },
                     'Transaction failed'
                 );
+                localStorage.setItem('lastTxType', data.type || 'expense');
+                localStorage.setItem('lastTxMethod', data.method || 'Cash');
+                localStorage.setItem('lastTxCategory', data.category || '');
                 toast.success('Transaction saved');
                 window.modal.close();
                 await this.fetchData();
             } catch (error) {
+                this.showTransactionFormError(error.message || 'Transaction failed');
                 toast.error(error.message || 'Transaction failed');
                 console.error(error);
             }
@@ -695,6 +848,10 @@ export class ExpenseApp {
     async deleteTransaction(id) {
         const tx = this.state.transactions.find((t) => t.id === id);
         if (!tx) return;
+        if (this.isSystemGoalAuditTransaction(tx)) {
+            toast.info('System-generated goal funding transactions cannot be edited or deleted');
+            return;
+        }
 
         await loading.with(async () => {
             try {
@@ -817,7 +974,7 @@ export class ExpenseApp {
     async clearAllData() {
         const confirmed = await this.showConfirmDialog({
             title: 'Clear all data?',
-            message: 'This permanently deletes all transactions and savings goals. This action cannot be undone.',
+            message: 'This permanently deletes transactions, savings goals, budgets, categories, and notifications. This action cannot be undone.',
             confirmText: 'Clear data',
             cancelText: 'Cancel',
             danger: true,
@@ -853,10 +1010,30 @@ export class ExpenseApp {
         return date.toISOString().slice(0, 7);
     }
 
+    getBudgetCategories() {
+        const hiddenBudgetCategories = new Set([
+            'Bills & Utilities',
+            'Education',
+            'Healthcare',
+            'Savings',
+            'Transportation',
+        ]);
+        const serverCategories = this.state.categories?.expense || [];
+        const defaultCategories = CATEGORY_OPTIONS.expense || [];
+        const budgetCategories = (this.state.budgets || []).map((b) => b.category).filter(Boolean);
+
+        // Keep defaults visible even when existing DB category rows are stale.
+        const ordered = [...defaultCategories, ...serverCategories, ...budgetCategories];
+        return [...new Set(ordered)].filter((category) => !hiddenBudgetCategories.has(category));
+    }
+
     openBudgetModal(prefill = {}) {
-        const categories = this.state.categories?.expense || [];
+        const categories = this.getBudgetCategories();
         const defaultMonth = prefill.month || this.state.budgetMonth || new Date().toISOString().slice(0, 7);
-        const selectedCategory = prefill.category || categories[0] || '';
+        const hasPrefillCategory = Boolean(prefill.category);
+        const isCustomPrefill = hasPrefillCategory && !categories.includes(prefill.category);
+        const selectedCategory = isCustomPrefill ? '__custom__' : (prefill.category || categories[0] || '');
+        const selectedCustomCategory = isCustomPrefill ? prefill.category : '';
         const selectedAmount = prefill.amount || '';
         const currencySymbol = formatCurrency(0, this.state.user?.currency).replace(/[0.,\s]/g, '') || '$';
 
@@ -881,9 +1058,18 @@ export class ExpenseApp {
                             <div class="relative">
                                 <select class="form-input appearance-none pl-4 pr-10 font-bold" name="category" required>
                                     ${categories.map((c) => `<option value="${c}" ${c === selectedCategory ? 'selected' : ''}>${c}</option>`).join('')}
+                                    <option value="__custom__" ${selectedCategory === '__custom__' ? 'selected' : ''}>+ Add category</option>
                                 </select>
                                 <i class="fas fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs"></i>
                             </div>
+                            <input
+                                type="text"
+                                name="categoryCustom"
+                                class="form-input font-semibold mt-3 ${selectedCategory === '__custom__' ? '' : 'hidden'}"
+                                value="${selectedCustomCategory}"
+                                maxlength="50"
+                                placeholder="Enter category name"
+                            >
                         </div>
 
                         <div class="space-y-2">
@@ -925,6 +1111,10 @@ export class ExpenseApp {
                             </div>
                         </div>
 
+                        <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 hidden" data-budget-error>
+                            <p class="text-xs font-semibold text-rose-700 dark:text-rose-300" id="budget-error-text"></p>
+                        </div>
+
                         <div class="flex gap-4 pt-2">
                             <button type="button" class="flex-1 h-14 rounded-2xl border border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all" data-budget-cancel>Dismiss</button>
                             <button type="submit" class="flex-2 btn-primary h-14 rounded-2xl font-black text-white shadow-xl shadow-blue-500/20" data-budget-submit>Set Limit</button>
@@ -936,6 +1126,7 @@ export class ExpenseApp {
 
         const form = overlay.querySelector('[data-budget-form]');
         const categoryInput = form?.elements.category;
+        const categoryCustomInput = form?.elements.categoryCustom;
         const monthInput = form?.elements.month;
         const amountInput = form?.elements.amount;
         const suggestionBox = overlay.querySelector('#suggest-field');
@@ -944,6 +1135,19 @@ export class ExpenseApp {
         const duplicateBox = overlay.querySelector('[data-budget-duplicate]');
         const duplicateText = overlay.querySelector('#duplicate-text');
         const submitBtn = overlay.querySelector('[data-budget-submit]');
+        const errorBox = overlay.querySelector('[data-budget-error]');
+        const errorText = overlay.querySelector('#budget-error-text');
+
+        const showBudgetError = (message = '') => {
+            if (!errorBox || !errorText) return;
+            if (!message) {
+                errorBox.classList.add('hidden');
+                errorText.textContent = '';
+                return;
+            }
+            errorText.textContent = message;
+            errorBox.classList.remove('hidden');
+        };
 
         const close = () => {
             document.removeEventListener('keydown', onKeydown);
@@ -952,9 +1156,29 @@ export class ExpenseApp {
 
         let activeSuggestion = null;
 
+        const resolveBudgetCategory = () => {
+            const selected = categoryInput?.value || '';
+            if (selected === '__custom__') return (categoryCustomInput?.value || '').trim();
+            return selected.trim();
+        };
+
+        const syncBudgetCategoryInput = () => {
+            if (!categoryInput || !categoryCustomInput) return;
+            const useCustom = categoryInput.value === '__custom__';
+            categoryCustomInput.classList.toggle('hidden', !useCustom);
+            categoryCustomInput.required = useCustom;
+            if (!useCustom) categoryCustomInput.value = '';
+        };
+
         const syncBudgetHints = () => {
-            const category = categoryInput?.value;
+            const category = resolveBudgetCategory();
             const month = monthInput?.value;
+            if (!category || !month) {
+                suggestionBox?.classList.add('hidden');
+                duplicateBox?.classList.add('hidden');
+                if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Set Limit';
+                return;
+            }
             const previousMonth = this.getPreviousMonth(month);
             const previous = this.state.budgets.find((b) => b.category === category && b.month === previousMonth);
 
@@ -995,19 +1219,25 @@ export class ExpenseApp {
         });
         overlay.querySelector('[data-budget-close]')?.addEventListener('click', close);
         overlay.querySelector('[data-budget-cancel]')?.addEventListener('click', close);
-        categoryInput?.addEventListener('change', syncBudgetHints);
+        categoryInput?.addEventListener('change', () => {
+            syncBudgetCategoryInput();
+            syncBudgetHints();
+        });
+        categoryCustomInput?.addEventListener('input', syncBudgetHints);
         monthInput?.addEventListener('change', syncBudgetHints);
 
         form?.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const category = categoryInput?.value;
+            const category = resolveBudgetCategory();
             const amount = parseFloat(amountInput?.value || '0');
             const month = monthInput?.value;
 
-            if (!category || !month || !Number.isFinite(amount) || amount <= 0) {
+            if (!category || !month || category.length > 50 || !Number.isFinite(amount) || amount <= 0) {
+                showBudgetError('Configure valid parameters');
                 toast.error('Configure valid parameters');
                 return;
             }
+            showBudgetError('');
 
             await loading.with(async () => {
                 try {
@@ -1025,6 +1255,7 @@ export class ExpenseApp {
                     close();
                     await this.fetchData();
                 } catch (error) {
+                    showBudgetError(error.message || 'Operation failed');
                     toast.error(error.message || 'Operation failed');
                     console.error(error);
                 }
@@ -1033,11 +1264,18 @@ export class ExpenseApp {
 
         document.addEventListener('keydown', onKeydown);
         document.body.appendChild(overlay);
+        syncBudgetCategoryInput();
         syncBudgetHints();
     }
 
     async saveSettings() {
         const currency = document.getElementById('settingsCurrency').value;
+        const budgetAlertsEl = document.getElementById('settingsNotifyBudget');
+        const goalMilestonesEl = document.getElementById('settingsNotifyGoals');
+
+        const payload = { currency };
+        if (budgetAlertsEl) payload.notify_budget_alerts = budgetAlertsEl.checked;
+        if (goalMilestonesEl) payload.notify_goal_milestones = goalMilestonesEl.checked;
 
         await loading.with(async () => {
             try {
@@ -1046,7 +1284,7 @@ export class ExpenseApp {
                     {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ currency })
+                        body: JSON.stringify(payload)
                     },
                     'Failed to save settings'
                 );
@@ -1082,12 +1320,15 @@ export class ExpenseApp {
         const title = document.getElementById('txModalTitle');
         if (title) title.textContent = 'Add Transaction';
         window.modal.open();
-        this.updateCategoryOptions('expense');
     }
 
     editTransaction(id) {
         const tx = this.state.transactions.find((t) => t.id === id);
         if (!tx) return;
+        if (this.isSystemGoalAuditTransaction(tx)) {
+            toast.info('System-generated goal funding transactions cannot be edited or deleted');
+            return;
+        }
         const title = document.getElementById('txModalTitle');
         if (title) title.textContent = 'Edit Transaction';
         window.modal.openForEdit(tx);
@@ -1162,6 +1403,14 @@ export class ExpenseApp {
         const goal = this.state.savingsGoals.find((item) => item.id === goalId);
         if (!goal) return;
 
+        const previousCurrent = parseFloat(goal.current_amount || 0);
+        const target = parseFloat(goal.target_amount || 0);
+
+        if (target > 0 && previousCurrent >= target) {
+            toast.info('Goal is already achieved');
+            return;
+        }
+
         const amount = await this.showAmountPromptDialog({
             title: `Add Money - ${escapeHtml(goal.name)}`,
             confirmText: 'Add',
@@ -1169,12 +1418,14 @@ export class ExpenseApp {
         });
         if (!amount) return;
 
-        const previousCurrent = parseFloat(goal.current_amount || 0);
-        const target = parseFloat(goal.target_amount || 0);
         const previousPct = target > 0 ? Math.round((previousCurrent / target) * 100) : 0;
         const nextPct = target > 0 ? Math.round((Math.min(target, previousCurrent + amount) / target) * 100) : 0;
 
         const nextCurrent = Math.min(target, previousCurrent + amount);
+        if (nextCurrent <= previousCurrent) {
+            toast.info('Goal is already achieved');
+            return;
+        }
         const payload = {
             name: goal.name,
             target: target,
@@ -1242,9 +1493,44 @@ export class ExpenseApp {
 
         const prev = select.value;
         const options = this.state.categories?.[type] || [];
-        select.innerHTML = '<option value="">Select a category</option>' + options.map((opt) => `<option value="${opt}">${opt}</option>`).join('');
+        select.innerHTML = '<option value="">Select a category</option>'
+            + options.map((opt) => `<option value="${opt}">${opt}</option>`).join('')
+            + '<option value="__custom__">+ Add custom category</option>';
 
         if (options.includes(prev)) select.value = prev;
+        this.syncCustomCategoryInput();
+    }
+
+    resolveTransactionCategory(data) {
+        const selected = (data.category || '').trim();
+        const customInput = document.getElementById('txCategoryCustom');
+        const custom = (customInput?.value || '').trim();
+        if (selected === '__custom__') return custom;
+        return selected;
+    }
+
+    syncCustomCategoryInput() {
+        const select = document.getElementById('txCategory');
+        const customInput = document.getElementById('txCategoryCustom');
+        if (!select || !customInput) return;
+
+        const useCustom = select.value === '__custom__';
+        customInput.classList.toggle('hidden', !useCustom);
+        customInput.required = useCustom;
+        if (!useCustom) customInput.value = '';
+    }
+
+    showTransactionFormError(message) {
+        const box = document.getElementById('txModalError');
+        const text = document.getElementById('txModalErrorText');
+        if (!box || !text) return;
+        if (!message) {
+            box.style.display = 'none';
+            text.textContent = '';
+            return;
+        }
+        text.textContent = message;
+        box.style.display = 'flex';
     }
 
     setupDashboardCharts() {
@@ -1267,7 +1553,7 @@ export class ExpenseApp {
             });
             labels = months.map((m) => monthLabel(`${m}-01`));
             incomeData = months.map((m) => trendTx.filter((t) => t.type === 'income' && t.date.startsWith(m)).reduce((s, t) => s + parseFloat(t.amount), 0));
-            expenseData = months.map((m) => trendTx.filter((t) => t.type === 'expense' && t.date.startsWith(m)).reduce((s, t) => s + parseFloat(t.amount), 0));
+            expenseData = months.map((m) => trendTx.filter((t) => this.isSpendingExpense(t) && t.date.startsWith(m)).reduce((s, t) => s + parseFloat(t.amount), 0));
         } else {
             const days = trendPeriod === 'month' ? 30 : 7;
             const dayKeys = [...Array(days)].map((_, i) => {
@@ -1277,7 +1563,7 @@ export class ExpenseApp {
             });
             labels = dayKeys.map((d) => formatDate(d));
             incomeData = dayKeys.map((d) => trendTx.filter((t) => t.type === 'income' && t.date === d).reduce((s, t) => s + parseFloat(t.amount), 0));
-            expenseData = dayKeys.map((d) => trendTx.filter((t) => t.type === 'expense' && t.date === d).reduce((s, t) => s + parseFloat(t.amount), 0));
+            expenseData = dayKeys.map((d) => trendTx.filter((t) => this.isSpendingExpense(t) && t.date === d).reduce((s, t) => s + parseFloat(t.amount), 0));
         }
 
         if (this.charts.trend) this.charts.trend.destroy();
@@ -1304,7 +1590,7 @@ export class ExpenseApp {
             }
         });
 
-        const breakdownTx = filterByPeriod(this.state.transactions.filter((t) => t.type === 'expense'), this.state.dashboardBreakdownPeriod);
+        const breakdownTx = filterByPeriod(this.state.transactions.filter((t) => this.isSpendingExpense(t)), this.state.dashboardBreakdownPeriod);
         const categories = {};
         breakdownTx.forEach((t) => {
             categories[t.category] = (categories[t.category] || 0) + parseFloat(t.amount);
@@ -1346,7 +1632,7 @@ export class ExpenseApp {
             .reduce((sum, t) => sum + parseFloat(t.amount), 0));
 
         const monthlyExpense = months.map((m) => this.state.transactions
-            .filter((t) => t.type === 'expense' && t.date.startsWith(m))
+            .filter((t) => this.isSpendingExpense(t) && t.date.startsWith(m))
             .reduce((sum, t) => sum + parseFloat(t.amount), 0));
 
         if (this.charts.analytics) this.charts.analytics.destroy();
@@ -1369,7 +1655,7 @@ export class ExpenseApp {
         });
 
         const categories = {};
-        this.state.transactions.filter((t) => t.type === 'expense').forEach((t) => {
+        this.state.transactions.filter((t) => this.isSpendingExpense(t)).forEach((t) => {
             categories[t.category] = (categories[t.category] || 0) + parseFloat(t.amount);
         });
 
@@ -1427,4 +1713,3 @@ export class ExpenseApp {
 }
 
 export { loading, toast, formatCurrency };
-

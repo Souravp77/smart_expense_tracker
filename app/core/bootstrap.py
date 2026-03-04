@@ -1,9 +1,16 @@
 from app.core.extensions import bcrypt, login_manager
+from flask import jsonify, redirect, request, url_for
 
 
 def register_extensions(app):
     login_manager.init_app(app)
     bcrypt.init_app(app)
+
+    @login_manager.unauthorized_handler
+    def _handle_unauthorized():
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'Authentication required'}), 401
+        return redirect(url_for('auth.login', next=request.path))
 
 
 def register_blueprints(app):

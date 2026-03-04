@@ -15,6 +15,10 @@ def save_settings():
         update_settings(current_user.id, payload)
         # Keep current request/session user object in sync with persisted settings.
         current_user.currency = payload['currency']
+        if 'notify_budget_alerts' in payload:
+            current_user.notify_budget_alerts = payload['notify_budget_alerts']
+        if 'notify_goal_milestones' in payload:
+            current_user.notify_goal_milestones = payload['notify_goal_milestones']
         return ok({'message': 'Settings updated'})
     except ValueError as error:
         return bad_request(error)

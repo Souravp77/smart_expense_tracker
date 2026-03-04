@@ -46,6 +46,7 @@ class ProjectTestCase(unittest.TestCase):
 
     def tearDown(self):
         # Clean up
+        self.cursor.execute("DROP TABLE IF EXISTS notifications")
         self.cursor.execute("DROP TABLE IF EXISTS transactions")
         self.cursor.execute("DROP TABLE IF EXISTS savings_goals")
         self.cursor.execute("DROP TABLE IF EXISTS budgets")
@@ -85,6 +86,30 @@ class ProjectTestCase(unittest.TestCase):
         response = self.login('demo@example.com', 'demo123')
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Dashboard', response.data)
+
+    def test_api_requires_auth_with_json_401(self):
+        response = self.client.get('/api/data', follow_redirects=False)
+        self.assertEqual(response.status_code, 401)
+        self.assertTrue(response.is_json)
+        self.assertEqual(response.get_json().get('error'), 'Authentication required')
+
+    def test_notifications_endpoints_contract(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        response = self.client.get('/api/notifications')
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload.get('status'), 'success')
+        self.assertIn('notifications', payload)
+        self.assertIn('unreadCount', payload)
+        self.assertIn('data', payload)
+
+        response = self.client.post('/api/notifications/read-all')
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload.get('status'), 'success')
+        self.assertIn('updated', payload)
 
     def test_api_transactions(self):
         # Register and Login
@@ -128,6 +153,31 @@ class ProjectTestCase(unittest.TestCase):
         descriptions = {t['description'] for t in data['transactions']}
         self.assertEqual(amounts, [120.0, 5000.0])
         self.assertIn('August Salary', descriptions)
+
+    def test_api_transactions_accept_custom_category_and_method(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        payload = {
+            'type': 'expense',
+            'amount': 89.50,
+            'category': 'Pet Care',
+            'description': 'Grooming',
+            'date': '2026-02-12',
+            'method': 'UPI'
+        }
+        response = self.client.post(
+            '/api/transactions',
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get('/api/data')
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.data)
+        self.assertTrue(any(t['category'] == 'Pet Care' for t in data['transactions']))
+        self.assertIn('Pet Care', data['categories']['expense'])
 
     def test_api_goals(self):
         self.register('Test User', 'test@example.com', 'password123')
@@ -341,6 +391,314 @@ class ProjectTestCase(unittest.TestCase):
         data = json.loads(response.data)
         self.assertEqual(len(data['budgets']), 1)
         self.assertEqual(float(data['budgets'][0]['amount']), 12000.0)
+
+    def test_cannot_delete_income_below_allocated_savings(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 1000.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        tx_id = response.get_json()['id']
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1500.00,
+            'current': 900.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.delete(f'/api/transactions/{tx_id}')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Cannot reduce income below allocated savings', response.get_json()['error'])
+
+    def test_cannot_update_income_below_allocated_savings(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 1000.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        tx_id = response.get_json()['id']
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1500.00,
+            'current': 900.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        reduced_income_payload = {
+            'type': 'income',
+            'amount': 800.00,
+            'category': 'Salary',
+            'description': 'Income adjusted',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.put(f'/api/transactions/{tx_id}',
+                                   data=json.dumps(reduced_income_payload),
+                                   content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('Cannot reduce income below allocated savings', response.get_json()['error'])
+
+    def test_goal_delete_removes_goal_audit_transactions(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 1000.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1500.00,
+            'current': 300.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        goal_id = response.get_json()['id']
+
+        response = self.client.get('/api/data')
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertTrue(any(t['category'] == 'Savings' for t in data['transactions']))
+
+        response = self.client.delete(f'/api/goals/{goal_id}')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get('/api/data')
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertFalse(any((t.get('description') or '').startswith(f'[Goal#{goal_id}]') for t in data['transactions']))
+
+    def test_rejects_non_finite_numbers(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        tx_payload = {
+            'type': 'income',
+            'amount': 'NaN',
+            'category': 'Salary',
+            'description': 'Bad amount',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(tx_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        budget_payload = {
+            'category': 'Food & Dining',
+            'amount': 'Infinity',
+            'month': '2026-02'
+        }
+        response = self.client.post('/api/budgets',
+                                    data=json.dumps(budget_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 'NaN',
+            'current': 0.0,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_rejects_decimal_overflow_values(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        tx_payload = {
+            'type': 'income',
+            'amount': 100000000.00,
+            'category': 'Salary',
+            'description': 'Too large',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(tx_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        goal_payload = {
+            'name': 'Mega Goal',
+            'target': 100000000.00,
+            'current': 0.0,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+        budget_payload = {
+            'category': 'Food & Dining',
+            'amount': 100000000.00,
+            'month': '2026-02'
+        }
+        response = self.client.post('/api/budgets',
+                                    data=json.dumps(budget_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_rejects_too_long_transaction_description(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        payload = {
+            'type': 'expense',
+            'amount': 10.0,
+            'category': 'Food & Dining',
+            'description': 'x' * 256,
+            'date': '2026-02-10',
+            'method': 'Cash'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_system_goal_audit_transactions_are_immutable(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 1000.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        response = self.client.post('/api/transactions',
+                                    data=json.dumps(income_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1500.00,
+            'current': 300.00,
+            'color': 'bg-blue-500'
+        }
+        response = self.client.post('/api/goals',
+                                    data=json.dumps(goal_payload),
+                                    content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get('/api/data')
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        audit_tx = next((t for t in data['transactions'] if t['category'] == 'Savings' and (t.get('description') or '').startswith('[Goal#')), None)
+        self.assertIsNotNone(audit_tx)
+
+        edit_payload = {
+            'type': 'expense',
+            'amount': 300.00,
+            'category': 'Food & Dining',
+            'description': 'Edited',
+            'date': audit_tx['date'],
+            'method': 'Card'
+        }
+        response = self.client.put(f"/api/transactions/{audit_tx['id']}",
+                                   data=json.dumps(edit_payload),
+                                   content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('cannot be edited', response.get_json()['error'].lower())
+
+        response = self.client.delete(f"/api/transactions/{audit_tx['id']}")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('cannot be deleted', response.get_json()['error'].lower())
+
+    def test_reset_data_endpoint_clears_user_financial_data(self):
+        self.register('Test User', 'test@example.com', 'password123')
+        self.login('test@example.com', 'password123')
+
+        income_payload = {
+            'type': 'income',
+            'amount': 1000.00,
+            'category': 'Salary',
+            'description': 'Income',
+            'date': '2026-02-10',
+            'method': 'Bank Transfer'
+        }
+        self.client.post('/api/transactions',
+                         data=json.dumps(income_payload),
+                         content_type='application/json')
+
+        goal_payload = {
+            'name': 'Emergency Fund',
+            'target': 1500.00,
+            'current': 300.00,
+            'color': 'bg-blue-500'
+        }
+        self.client.post('/api/goals',
+                         data=json.dumps(goal_payload),
+                         content_type='application/json')
+
+        budget_payload = {
+            'category': 'Food & Dining',
+            'amount': 10000.00,
+            'month': '2026-02'
+        }
+        self.client.post('/api/budgets',
+                         data=json.dumps(budget_payload),
+                         content_type='application/json')
+
+        response = self.client.post('/api/data/reset')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get('/api/data')
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(len(data['transactions']), 0)
+        self.assertEqual(len(data['savingsGoals']), 0)
+        self.assertEqual(len(data['budgets']), 0)
 
 if __name__ == '__main__':
     unittest.main()

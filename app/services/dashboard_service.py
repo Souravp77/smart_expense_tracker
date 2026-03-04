@@ -1,42 +1,25 @@
 from app.core.db import db_cursor
 
+DEFAULT_INCOME_CATEGORIES = [
+    'Salary',
+    'Freelance',
+    'Investment',
+    'Gift',
+]
+
+DEFAULT_EXPENSE_CATEGORIES = [
+    'Food & Dining',
+    'Shopping',
+    'Entertainment',
+    'Travel / Outings',
+    'Personal Care',
+    'Parties',
+    'Subscriptions',
+    'Other Expense',
+]
+
 
 def _fetch_finance_summary(cursor, user_id):
-    try:
-        cursor.execute(
-            """
-            SELECT
-                total_income_recorded,
-                total_expense,
-                allocated_savings,
-                available_income,
-                available_balance
-            FROM user_finance_summary
-            WHERE user_id = %s
-            """,
-            (user_id,)
-        )
-        row = cursor.fetchone()
-        if row:
-            total_income = float(row['total_income_recorded'] or 0)
-            total_expense = float(row['total_expense'] or 0)
-            allocated_savings = float(row['allocated_savings'] or 0)
-            # Keep API semantics consistent with fallback logic and UI expectations:
-            # available income excludes all allocated savings goal amounts.
-            available_income = total_income - allocated_savings
-            available_balance = available_income - total_expense
-            savings_rate = round((available_balance / available_income) * 100) if available_income else 0
-            return {
-                'totalIncomeRecorded': total_income,
-                'allocatedSavings': allocated_savings,
-                'availableIncome': available_income,
-                'totalExpense': total_expense,
-                'availableBalance': available_balance,
-                'savingsRate': savings_rate,
-            }
-    except Exception:
-        pass
-
     cursor.execute(
         """
         SELECT COALESCE(SUM(amount), 0) AS total_income
@@ -51,7 +34,9 @@ def _fetch_finance_summary(cursor, user_id):
         """
         SELECT COALESCE(SUM(amount), 0) AS total_expense
         FROM transactions
-        WHERE user_id = %s AND type = 'expense'
+        WHERE user_id = %s
+          AND type = 'expense'
+          AND category <> 'Savings'
         """,
         (user_id,)
     )
@@ -117,12 +102,24 @@ def get_dashboard_payload(user):
         for budget in budgets:
             budget['id'] = budget['budget_id']
 
-        cursor.execute("SELECT name, type FROM categories")
+        cursor.execute(
+            """
+            SELECT DISTINCT name, type
+            FROM categories
+            WHERE user_id IS NULL OR user_id = %s
+            ORDER BY name ASC
+            """,
+            (user.id,)
+        )
         categories_raw = cursor.fetchall()
         categories = {'income': [], 'expense': []}
         for cat in categories_raw:
             if cat['type'] in categories:
                 categories[cat['type']].append(cat['name'])
+
+        # Merge defaults so UI stays consistent even when older DB seeds are present.
+        categories['income'] = list(dict.fromkeys(DEFAULT_INCOME_CATEGORIES + categories['income']))
+        categories['expense'] = list(dict.fromkeys(DEFAULT_EXPENSE_CATEGORIES + categories['expense']))
 
         finance_summary = _fetch_finance_summary(cursor, user.id)
 
@@ -138,6 +135,8 @@ def get_dashboard_payload(user):
             'id': user.id,
             'name': user.username,
             'email': user.email,
-            'currency': user.currency or 'INR'
+            'currency': user.currency or 'INR',
+            'notify_budget_alerts': getattr(user, 'notify_budget_alerts', True),
+            'notify_goal_milestones': getattr(user, 'notify_goal_milestones', True)
         }
     }
