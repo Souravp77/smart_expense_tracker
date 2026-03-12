@@ -4,14 +4,16 @@ from app.core.extensions import bcrypt
 from app.services.auth_service import get_user_by_email, register_user
 from app.services.demo_data_service import seed_demo_data
 
+import re
+
 auth_bp = Blueprint('auth', __name__)
 
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
 def _valid_email(email):
-    if not email or '@' not in email:
+    if not email:
         return False
-    local, _, domain = email.partition('@')
-    return bool(local.strip()) and '.' in domain
+    return bool(EMAIL_REGEX.match(email))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():

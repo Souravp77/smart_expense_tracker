@@ -7,6 +7,7 @@ class NotificationService:
     def create_notification(user_id, notif_type, title, message, action_url=None, conn=None, cursor=None):
         """Creates a new notification for a user."""
         owns_connection = conn is None
+        owns_cursor = cursor is None
         local_conn = conn or get_db_connection()
         local_cursor = cursor
         try:
@@ -28,9 +29,9 @@ class NotificationService:
                 local_conn.rollback()
             raise
         finally:
+            if owns_cursor and local_cursor is not None:
+                local_cursor.close()
             if owns_connection:
-                if local_cursor is not None:
-                    local_cursor.close()
                 local_conn.close()
 
     @staticmethod

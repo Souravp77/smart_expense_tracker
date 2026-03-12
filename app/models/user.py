@@ -44,6 +44,7 @@ class User(UserMixin):
 
     @staticmethod
     def create(username, email, password_hash, currency='INR'):
+        from flask import current_app
         try:
             with db_cursor() as (conn, cursor):
                 cursor.execute(
@@ -53,7 +54,7 @@ class User(UserMixin):
                 conn.commit()
                 return cursor.lastrowid
         except Exception as e:
-            print(f"Error creating user: {e}")
+            current_app.logger.error(f"Error creating user: {e}")
             return None
 
 @login_manager.user_loader
