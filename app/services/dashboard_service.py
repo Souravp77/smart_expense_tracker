@@ -1,4 +1,21 @@
 from app.core.db import db_cursor
+from decimal import Decimal, ROUND_HALF_UP
+
+
+MONEY_QUANTUM = Decimal('0.01')
+ZERO_MONEY = Decimal('0.00')
+
+
+def _to_decimal(value):
+    if isinstance(value, Decimal):
+        return value
+    if value in (None, ''):
+        return ZERO_MONEY
+    return Decimal(str(value))
+
+
+def _to_money_float(value):
+    return float(_to_decimal(value).quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP))
 
 DEFAULT_INCOME_CATEGORIES = [
     'Salary',
@@ -28,7 +45,7 @@ def _fetch_finance_summary(cursor, user_id):
         """,
         (user_id,)
     )
-    total_income = float(cursor.fetchone()['total_income'] or 0)
+    total_income = _to_decimal(cursor.fetchone()['total_income'])
 
     cursor.execute(
         """
@@ -40,7 +57,7 @@ def _fetch_finance_summary(cursor, user_id):
         """,
         (user_id,)
     )
-    total_expense = float(cursor.fetchone()['total_expense'] or 0)
+    total_expense = _to_decimal(cursor.fetchone()['total_expense'])
 
     cursor.execute(
         """
@@ -50,17 +67,17 @@ def _fetch_finance_summary(cursor, user_id):
         """,
         (user_id,)
     )
-    allocated_savings = float(cursor.fetchone()['allocated_savings'] or 0)
+    allocated_savings = _to_decimal(cursor.fetchone()['allocated_savings'])
 
     available_income = total_income - allocated_savings
     available_balance = available_income - total_expense
     savings_rate = round((available_balance / available_income) * 100) if available_income else 0
     return {
-        'totalIncomeRecorded': total_income,
-        'allocatedSavings': allocated_savings,
-        'availableIncome': available_income,
-        'totalExpense': total_expense,
-        'availableBalance': available_balance,
+        'totalIncomeRecorded': _to_money_float(total_income),
+        'allocatedSavings': _to_money_float(allocated_savings),
+        'availableIncome': _to_money_float(available_income),
+        'totalExpense': _to_money_float(total_expense),
+        'availableBalance': _to_money_float(available_balance),
         'savingsRate': savings_rate,
     }
 

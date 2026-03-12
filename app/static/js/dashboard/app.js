@@ -1078,7 +1078,7 @@ export class ExpenseApp {
                                 <div class="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-black transition-colors group-focus-within:bg-blue-500 group-focus-within:text-white">
                                     ${currencySymbol}
                                 </div>
-                                <input type="number" name="amount" required min="0.01" step="0.01" class="form-input pl-14 text-xl font-black tracking-tight" value="${selectedAmount}" placeholder="0.00">
+                                <input type="number" name="amount" required min="0" step="1" class="form-input pl-14 text-xl font-black tracking-tight" value="${selectedAmount}" placeholder="0.00">
                             </div>
                         </div>
 
@@ -1355,7 +1355,7 @@ export class ExpenseApp {
                             <label class="block text-sm text-slate-500 dark:text-slate-400 mb-2">Amount</label>
                             <div class="relative">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">${formatCurrency(0, this.state.user?.currency).replace(/[0.,\s]/g, '') || 'Rs'}</span>
-                                <input id="amountPromptInput" type="number" min="0.01" step="0.01" class="form-input pl-8" placeholder="${placeholder}">
+                                <input id="amountPromptInput" type="number" min="0" step="1" class="form-input pl-8" placeholder="${placeholder}">
                             </div>
                         </div>
                         <div class="px-6 pb-6 flex justify-end gap-3">

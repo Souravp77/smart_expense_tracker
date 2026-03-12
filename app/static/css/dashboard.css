@@ -106,6 +106,12 @@ body {
     color: var(--text-primary);
 }
 
+.app-main-surface {
+    background-image:
+        radial-gradient(circle at 10% 0%, rgba(219, 234, 254, 0.55), rgba(219, 234, 254, 0) 36%),
+        radial-gradient(circle at 92% 96%, rgba(191, 219, 254, 0.45), rgba(191, 219, 254, 0) 40%);
+}
+
 .ui-page-head {
     display: grid;
     gap: 0.35rem;
@@ -589,6 +595,10 @@ button:focus {
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
+}
+
+.modal-container-goal {
+    max-width: 540px;
 }
 
 .btn-primary {
@@ -3371,6 +3381,30 @@ button:focus {
     cursor: pointer;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     position: relative;
+}
+
+.gm-swatch-blue {
+    background: #2563eb;
+}
+
+.gm-swatch-teal {
+    background: #0f766e;
+}
+
+.gm-swatch-violet {
+    background: #7c3aed;
+}
+
+.gm-swatch-rose {
+    background: #e11d48;
+}
+
+.gm-swatch-amber {
+    background: #b45309;
+}
+
+.gm-swatch-indigo {
+    background: #4338ca;
 }
 
 .goal-color-swatch:hover {

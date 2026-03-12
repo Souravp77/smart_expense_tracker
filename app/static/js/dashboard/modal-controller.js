@@ -11,6 +11,12 @@ export const modal = {
         const dateInput = document.getElementById('txDate');
         if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
 
+        const amountInput = document.getElementById('txAmount');
+        if (amountInput) {
+            amountInput.value = '';
+            amountInput.setAttribute('value', '');
+        }
+
         const lastType = localStorage.getItem('lastTxType') || 'expense';
         const txType = document.querySelector(`input[name="type"][value="${lastType}"]`)
             || document.querySelector('input[name="type"][value="expense"]');

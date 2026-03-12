@@ -1,6 +1,18 @@
 from app.core.db import db_cursor
 from app.services.errors import ResourceNotFoundError
 from app.services.notification_service import NotificationService
+from decimal import Decimal
+
+
+ZERO_MONEY = Decimal('0.00')
+
+
+def _to_decimal(value):
+    if isinstance(value, Decimal):
+        return value
+    if value in (None, ''):
+        return ZERO_MONEY
+    return Decimal(str(value))
 
 
 def _lock_user_row(cursor, user_id):
@@ -19,7 +31,7 @@ def _assert_savings_within_income(cursor, user_id, new_current_amount, exclude_g
         """,
         (user_id,)
     )
-    total_income = float(cursor.fetchone()[0] or 0)
+    total_income = _to_decimal(cursor.fetchone()[0])
 
     if exclude_goal_id is None:
         cursor.execute(
@@ -36,8 +48,8 @@ def _assert_savings_within_income(cursor, user_id, new_current_amount, exclude_g
             (user_id, exclude_goal_id)
         )
 
-    existing_allocations = float(cursor.fetchone()[0] or 0)
-    next_total_allocations = existing_allocations + float(new_current_amount or 0)
+    existing_allocations = _to_decimal(cursor.fetchone()[0])
+    next_total_allocations = existing_allocations + _to_decimal(new_current_amount)
 
     if next_total_allocations > total_income:
         raise ValueError("Allocated savings cannot exceed total income")
@@ -64,7 +76,8 @@ def add_goal(user_id, data):
         goal_id = cursor.lastrowid
 
         # Keep goal-funding audit trail consistent for initial allocations too.
-        if float(data.get('current', 0) or 0) > 0:
+        current_amount = _to_decimal(data.get('current', 0))
+        if current_amount > ZERO_MONEY:
             cursor.execute(
                 """
                 INSERT INTO transactions (user_id, type, amount, category, description, date)
@@ -72,14 +85,14 @@ def add_goal(user_id, data):
                 """,
                 (
                     user_id,
-                    float(data['current']),
+                    current_amount,
                     f"[Goal#{goal_id}] Funded goal",
                     date.today().isoformat()
                 )
             )
         
         # Check milestone for new goal
-        if float(data.get('current', 0)) >= float(data['target']):
+        if current_amount >= _to_decimal(data['target']):
             cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
             row = cursor.fetchone()
             if row and row[0]:
@@ -107,8 +120,8 @@ def update_goal(user_id, goal_id, data):
         if not row:
             raise ResourceNotFoundError("Goal not found")
         
-        old_amount = float(row[0] or 0)
-        new_amount = float(data.get('current', 0))
+        old_amount = _to_decimal(row[0])
+        new_amount = _to_decimal(data.get('current', 0))
         
         _assert_savings_within_income(cursor, user_id, new_amount, exclude_goal_id=goal_id)
         
@@ -145,7 +158,8 @@ def update_goal(user_id, goal_id, data):
             )
 
         # Check milestone for updated goal
-        if new_amount >= float(data['target']) and old_amount < float(data['target']):
+        target_amount = _to_decimal(data['target'])
+        if new_amount >= target_amount and old_amount < target_amount:
             cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
             user_row = cursor.fetchone()
             if user_row and user_row[0]:

@@ -246,18 +246,7 @@ export function renderBudgetView(app, container) {
                     <div class="budget-progress-fill ${globalTone}" style="width: ${Math.min(100, totalUsage)}%"></div>
                 </div>
             </div>
-            ` : `
-            <div class="p-12 text-center glass rounded-[32px] border-dashed border-2 border-slate-300 dark:border-slate-700">
-                <div class="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-bullseye text-2xl text-slate-400"></i>
-                </div>
-                <h4 class="text-lg font-bold mb-1">No Budgets Defined</h4>
-                <p class="text-slate-500 text-sm mb-6 max-width-xs mx-auto">Track your spending by setting limits for your favorite categories in ${monthLabel(currentMonth)}.</p>
-                <button onclick="app.openBudgetModal({ month: '${currentMonth}' })" class="btn-primary">
-                    <i class="fas fa-plus mr-2"></i>Configure Budgets
-                </button>
-            </div>
-            `}
+            ` : ''}
 
             <div class="budget-category-grid">
                 ${cards}

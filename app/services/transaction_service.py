@@ -2,6 +2,19 @@ from app.core.db import db_cursor
 from app.services.errors import ResourceNotFoundError
 from app.services.notification_service import NotificationService
 from datetime import date as dt_date
+from decimal import Decimal
+
+
+ZERO_MONEY = Decimal('0.00')
+WARNING_THRESHOLD = Decimal('0.8')
+
+
+def _to_decimal(value):
+    if isinstance(value, Decimal):
+        return value
+    if value in (None, ''):
+        return ZERO_MONEY
+    return Decimal(str(value))
 
 
 def _ensure_category_exists(cursor, user_id, tx_type, category_name):
@@ -41,7 +54,7 @@ def _get_allocated_savings(cursor, user_id):
         """,
         (user_id,)
     )
-    return float(cursor.fetchone()[0] or 0)
+    return _to_decimal(cursor.fetchone()[0])
 
 
 def _get_total_income(cursor, user_id):
@@ -53,7 +66,7 @@ def _get_total_income(cursor, user_id):
         """,
         (user_id,)
     )
-    return float(cursor.fetchone()[0] or 0)
+    return _to_decimal(cursor.fetchone()[0])
 
 
 def _assert_income_invariant(cursor, user_id, projected_total_income):
@@ -94,7 +107,7 @@ def _check_budget_and_notify(conn, cursor, user_id, category, tx_date):
     b_row = cursor.fetchone()
     if not b_row:
         return
-    budget_limit = float(b_row[0])
+    budget_limit = _to_decimal(b_row[0])
     
     # Get total spent in this category for this month
     cursor.execute(
@@ -110,7 +123,7 @@ def _check_budget_and_notify(conn, cursor, user_id, category, tx_date):
         (user_id, category, month_start, month_end)
     )
     s_row = cursor.fetchone()
-    spent = float(s_row[0] or 0)
+    spent = _to_decimal(s_row[0])
     
     # Trigger logic
     if spent >= budget_limit:
@@ -130,7 +143,7 @@ def _check_budget_and_notify(conn, cursor, user_id, category, tx_date):
         )
         if not cursor.fetchone():
             NotificationService.create_notification(user_id, 'budget_alert', 'Budget Reached', msg, '/budget', conn=conn, cursor=cursor)
-    elif spent >= budget_limit * 0.8:
+    elif spent >= budget_limit * WARNING_THRESHOLD:
         msg = f"You have spent {(spent/budget_limit)*100:.0f}% of your {month_str} budget for {category}."
         # Optional: could check if already notified to avoid spam, but since we just do it per transaction it's fine for now, or check DB
         cursor.execute(
@@ -187,7 +200,7 @@ def update_transaction(user_id, transaction_id, data):
             raise ResourceNotFoundError("Transaction not found")
 
         previous_type = previous[0]
-        previous_amount = float(previous[1] or 0)
+        previous_amount = _to_decimal(previous[1])
         previous_category = previous[2]
         previous_description = previous[3]
 
@@ -200,7 +213,7 @@ def update_transaction(user_id, transaction_id, data):
             if previous_type == 'income':
                 projected_total_income -= previous_amount
             if data['type'] == 'income':
-                projected_total_income += float(data['amount'])
+                projected_total_income += _to_decimal(data['amount'])
             _assert_income_invariant(cursor, user_id, projected_total_income)
 
         _ensure_category_exists(cursor, user_id, data['type'], data['category'])
@@ -244,7 +257,7 @@ def delete_transaction(user_id, transaction_id):
             raise ResourceNotFoundError("Transaction not found")
 
         tx_type = row[0]
-        tx_amount = float(row[1] or 0)
+        tx_amount = _to_decimal(row[1])
         tx_category = row[2]
         tx_description = row[3]
 

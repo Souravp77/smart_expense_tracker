@@ -1,10 +1,11 @@
 from datetime import date
-import math
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 
 ALLOWED_TRANSACTION_TYPES = {'income', 'expense'}
 ALLOWED_CURRENCIES = {'USD', 'EUR', 'GBP', 'INR'}
-MAX_DECIMAL_AMOUNT = 99_999_999.99  # DECIMAL(10,2)
+MAX_DECIMAL_AMOUNT = Decimal('99999999.99')  # DECIMAL(10,2)
+MONEY_QUANTUM = Decimal('0.01')
 ALLOWED_EXPENSE_CATEGORIES = {
     'Food & Dining',
     'Transportation',
@@ -47,6 +48,18 @@ def _require(data, fields):
         raise ValueError(f"Missing required fields: {', '.join(missing)}")
 
 
+def _to_money(value, numeric_error, finite_error):
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as e:
+        raise ValueError(numeric_error) from e
+
+    if not amount.is_finite():
+        raise ValueError(finite_error)
+
+    return amount.quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
+
+
 def validate_transaction_payload(data):
     _require(data, ['type', 'amount', 'category', 'date'])
 
@@ -70,13 +83,11 @@ def validate_transaction_payload(data):
         pass
     data['category'] = category
 
-    try:
-        data['amount'] = float(data['amount'])
-    except (TypeError, ValueError) as e:
-        raise ValueError("Amount must be numeric") from e
-
-    if not math.isfinite(data['amount']):
-        raise ValueError("Amount must be a finite number")
+    data['amount'] = _to_money(
+        data['amount'],
+        numeric_error="Amount must be numeric",
+        finite_error="Amount must be a finite number",
+    )
 
     if data['amount'] <= 0:
         raise ValueError("Amount must be greater than 0")
@@ -103,14 +114,19 @@ def validate_goal_payload(data):
     _require(data, ['name', 'target'])
 
     try:
-        data['target'] = float(data['target'])
+        data['target'] = _to_money(
+            data['target'],
+            numeric_error="Target and current must be numeric",
+            finite_error="Target and current must be finite numbers",
+        )
         current_raw = data.get('current', 0)
-        data['current'] = 0.0 if current_raw in (None, '') else float(current_raw)
-    except (TypeError, ValueError) as e:
-        raise ValueError("Target and current must be numeric") from e
-
-    if not math.isfinite(data['target']) or not math.isfinite(data['current']):
-        raise ValueError("Target and current must be finite numbers")
+        data['current'] = _to_money(
+            0 if current_raw in (None, '') else current_raw,
+            numeric_error="Target and current must be numeric",
+            finite_error="Target and current must be finite numbers",
+        )
+    except ValueError as e:
+        raise ValueError(str(e)) from e
 
     if data['target'] <= 0:
         raise ValueError("Target must be greater than 0")
@@ -169,13 +185,11 @@ def validate_budget_payload(data):
     data['category'] = category
 
 
-    try:
-        data['amount'] = float(data['amount'])
-    except (TypeError, ValueError) as e:
-        raise ValueError("Budget amount must be numeric") from e
-
-    if not math.isfinite(data['amount']):
-        raise ValueError("Budget amount must be a finite number")
+    data['amount'] = _to_money(
+        data['amount'],
+        numeric_error="Budget amount must be numeric",
+        finite_error="Budget amount must be a finite number",
+    )
 
     if data['amount'] <= 0:
         raise ValueError("Budget amount must be greater than 0")

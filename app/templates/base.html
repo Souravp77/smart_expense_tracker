@@ -151,8 +151,7 @@
                 </div>
             </aside>
 
-            <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950"
-                style="background-image: radial-gradient(circle at 10% 0%, rgba(219, 234, 254, 0.55), rgba(219, 234, 254, 0) 36%), radial-gradient(circle at 92% 96%, rgba(191, 219, 254, 0.45), rgba(191, 219, 254, 0) 40%);">
+            <main class="app-main-surface flex-1 flex flex-col h-full overflow-hidden bg-slate-50 dark:bg-slate-950">
                 <header id="appHeader" class="glass px-4 md:px-8 py-4 flex items-center justify-between gap-4">
                     <div>
                         <div class="flex items-center gap-3">
@@ -246,7 +245,7 @@
                     <span id="txModalErrorText"></span>
                 </div>
 
-                <form id="transactionForm" class="p-6 space-y-5">
+                <form id="transactionForm" class="p-6 space-y-5" autocomplete="off">
                     <input type="hidden" name="txId" id="txId">
 
                     <div class="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
@@ -271,7 +270,7 @@
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium"
                                 id="modalCurrencySymbol"></span>
-                            <input type="number" name="amount" id="txAmount" required min="0.01" step="0.01"
+                            <input type="number" name="amount" id="txAmount" required min="0" step="1" autocomplete="off"
                                 class="form-input pl-8" placeholder="0.00">
                         </div>
                     </div>
@@ -338,7 +337,7 @@
 
     <!-- Goal Modal - Professional Edition -->
     <div id="goalModal" class="modal-overlay">
-        <div class="modal-container" style="max-width:540px;">
+        <div class="modal-container modal-container-goal">
             <div class="gm-shell">
 
                 <!-- Gradient Header -->
@@ -400,7 +399,7 @@
                             <div class="relative">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium modal-currency-symbol"></span>
-                                <input type="number" name="target" required min="1" step="0.01" class="form-input pl-8"
+                                <input type="number" name="target" required min="1" step="1" class="form-input pl-8"
                                     placeholder="0.00">
                             </div>
                         </div>
@@ -411,7 +410,7 @@
                             <div class="relative">
                                 <span
                                     class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium modal-currency-symbol"></span>
-                                <input type="number" name="current" min="0" step="0.01" class="form-input pl-8"
+                                <input type="number" name="current" min="0" step="1" class="form-input pl-8"
                                     placeholder="0.00">
                             </div>
                         </div>
@@ -430,32 +429,32 @@
                     <div class="gm-field">
                         <label class="gm-label"><i class="fas fa-palette"></i> Goal Color</label>
                         <div class="gm-color-row goal-color-picker">
-                            <label class="goal-color-swatch selected gm-swatch" title="Ocean Blue"
-                                style="background:#2563eb;" id="swatchBlue">
+                            <label class="goal-color-swatch selected gm-swatch gm-swatch-blue" title="Ocean Blue"
+                                id="swatchBlue">
                                 <input type="radio" name="color" value="bg-blue-500" checked>
                                 <span class="gm-swatch-tooltip">Ocean Blue</span>
                             </label>
-                            <label class="goal-color-swatch gm-swatch" title="Forest Teal" style="background:#0f766e;"
+                            <label class="goal-color-swatch gm-swatch gm-swatch-teal" title="Forest Teal"
                                 id="swatchTeal">
                                 <input type="radio" name="color" value="bg-teal-600">
                                 <span class="gm-swatch-tooltip">Forest Teal</span>
                             </label>
-                            <label class="goal-color-swatch gm-swatch" title="Royal Violet" style="background:#7c3aed;"
+                            <label class="goal-color-swatch gm-swatch gm-swatch-violet" title="Royal Violet"
                                 id="swatchPurple">
                                 <input type="radio" name="color" value="bg-violet-600">
                                 <span class="gm-swatch-tooltip">Royal Violet</span>
                             </label>
-                            <label class="goal-color-swatch gm-swatch" title="Rose Red" style="background:#e11d48;"
+                            <label class="goal-color-swatch gm-swatch gm-swatch-rose" title="Rose Red"
                                 id="swatchRose">
                                 <input type="radio" name="color" value="bg-rose-600">
                                 <span class="gm-swatch-tooltip">Rose Red</span>
                             </label>
-                            <label class="goal-color-swatch gm-swatch" title="Amber Gold" style="background:#b45309;"
+                            <label class="goal-color-swatch gm-swatch gm-swatch-amber" title="Amber Gold"
                                 id="swatchAmber">
                                 <input type="radio" name="color" value="bg-amber-700">
                                 <span class="gm-swatch-tooltip">Amber Gold</span>
                             </label>
-                            <label class="goal-color-swatch gm-swatch" title="Indigo" style="background:#4338ca;"
+                            <label class="goal-color-swatch gm-swatch gm-swatch-indigo" title="Indigo"
                                 id="swatchIndigo">
                                 <input type="radio" name="color" value="bg-indigo-600">
                                 <span class="gm-swatch-tooltip">Indigo</span>
