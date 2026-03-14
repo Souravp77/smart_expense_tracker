@@ -49,6 +49,19 @@
             });
         }
 
+        var visibleInputs = Array.from(form.querySelectorAll('input:not([type="hidden"])'));
+        visibleInputs.forEach(function(input, index) {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    if (index < visibleInputs.length - 1) {
+                        e.preventDefault(); // Prevent form submit
+                        visibleInputs[index + 1].focus(); // Focus next input
+                    }
+                    // If it's the last input, we let the default Enter behavior trigger the submit.
+                }
+            });
+        });
+
         form.addEventListener('submit', function (e) {
             var isValid = true;
 

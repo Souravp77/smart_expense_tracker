@@ -86,21 +86,32 @@ CREATE TABLE notifications (
 CREATE OR REPLACE VIEW user_finance_summary AS
 SELECT
     u.user_id,
-    COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'income'), 0) AS total_income_recorded,
-    COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'expense' AND t.category <> 'Savings'), 0) AS total_expense,
-    COALESCE((SELECT SUM(g.current_amount) FROM savings_goals g WHERE g.user_id = u.user_id), 0) AS allocated_savings,
+    COALESCE(inc.total_income_recorded, 0) AS total_income_recorded,
+    COALESCE(exp.total_expense, 0) AS total_expense,
+    COALESCE(sav.allocated_savings, 0) AS allocated_savings,
+    (COALESCE(inc.total_income_recorded, 0) - COALESCE(sav.allocated_savings, 0)) AS available_income,
     (
-        COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'income'), 0) -
-        COALESCE((SELECT SUM(g.current_amount) FROM savings_goals g WHERE g.user_id = u.user_id), 0)
-    ) AS available_income,
-    (
-        (
-            COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'income'), 0) -
-            COALESCE((SELECT SUM(g.current_amount) FROM savings_goals g WHERE g.user_id = u.user_id), 0)
-        ) -
-        COALESCE((SELECT SUM(t.amount) FROM transactions t WHERE t.user_id = u.user_id AND t.type = 'expense' AND t.category <> 'Savings'), 0)
+        (COALESCE(inc.total_income_recorded, 0) - COALESCE(sav.allocated_savings, 0)) -
+        COALESCE(exp.total_expense, 0)
     ) AS available_balance
-FROM users u;
+FROM users u
+LEFT JOIN (
+    SELECT user_id, SUM(amount) AS total_income_recorded
+    FROM transactions
+    WHERE type = 'income'
+    GROUP BY user_id
+) inc ON u.user_id = inc.user_id
+LEFT JOIN (
+    SELECT user_id, SUM(amount) AS total_expense
+    FROM transactions
+    WHERE type = 'expense' AND category <> 'Savings'
+    GROUP BY user_id
+) exp ON u.user_id = exp.user_id
+LEFT JOIN (
+    SELECT user_id, SUM(current_amount) AS allocated_savings
+    FROM savings_goals
+    GROUP BY user_id
+) sav ON u.user_id = sav.user_id;
 
 
 INSERT INTO categories (user_id, name, type) VALUES

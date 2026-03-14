@@ -129,18 +129,18 @@ def get_dashboard_payload(user):
             (user.id,)
         )
         categories_raw = cursor.fetchall()
-        categories = {'income': [], 'expense': []}
-        for cat in categories_raw:
-            if cat['type'] in categories:
-                categories[cat['type']].append(cat['name'])
+        
+        income_cats = [c['name'] for c in categories_raw if c['type'] == 'income']
+        expense_cats = [c['name'] for c in categories_raw if c['type'] == 'expense']
 
         # Merge defaults so UI stays consistent even when older DB seeds are present.
-        categories['income'] = list(dict.fromkeys(DEFAULT_INCOME_CATEGORIES + categories['income']))
-        categories['expense'] = list(dict.fromkeys(DEFAULT_EXPENSE_CATEGORIES + categories['expense']))
+        # dict.fromkeys is slightly faster than set for preserving order, but a direct loop/set combo or just dict.fromkeys is fine.
+        categories = {
+            'income': list(dict.fromkeys(DEFAULT_INCOME_CATEGORIES + income_cats)),
+            'expense': list(dict.fromkeys(DEFAULT_EXPENSE_CATEGORIES + expense_cats))
+        }
 
         finance_summary = _fetch_finance_summary(cursor, user.id)
-
-
 
     return {
         'transactions': transactions,
