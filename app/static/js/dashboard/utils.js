@@ -5,12 +5,17 @@ export const escapeHtml = (unsafe) => {
     })[char]);
 };
 
-export const formatDate = (dateString) => {
+export const formatDate = (dateString, options = {}) => {
     if (!dateString) return '';
     try {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric', month: 'short', day: 'numeric'
-        });
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        
+        const defaultOptions = options.long 
+            ? { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }
+            : { year: 'numeric', month: 'short', day: 'numeric' };
+            
+        return date.toLocaleDateString('en-US', { ...defaultOptions, ...options });
     } catch {
         return dateString;
     }

@@ -61,8 +61,8 @@ def add_goal(user_id, data):
         _assert_savings_within_income(cursor, user_id, data.get('current', 0))
         cursor.execute(
             """
-            INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color, deadline)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color, icon, priority, deadline)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 user_id,
@@ -70,6 +70,8 @@ def add_goal(user_id, data):
                 data['target'],
                 data['current'],
                 data.get('color', 'bg-blue-500'),
+                data.get('icon', 'fa-bullseye'),
+                data.get('priority', 'medium'),
                 data.get('deadline')
             )
         )
@@ -91,21 +93,38 @@ def add_goal(user_id, data):
                 )
             )
         
-        # Check milestone for new goal
-        if current_amount >= _to_decimal(data['target']):
-            cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
-            row = cursor.fetchone()
-            if row and row[0]:
-                msg = f"Congratulations! You've achieved your goal: {data['name']}!"
-                NotificationService.create_notification(
-                    user_id,
-                    'goal_milestone',
-                    'Goal Achieved \U0001F389',
-                    msg,
-                    '/savings',
-                    conn=conn,
-                    cursor=cursor
-                )
+        # Check milestones for new goal
+        target_amount = _to_decimal(data['target'])
+        if target_amount > ZERO_MONEY:
+            progress = (current_amount / target_amount) * 100
+            if progress >= 100:
+                milestone_title = 'Goal Achieved \U0001F389'
+                milestone_msg = f"Congratulations! You've achieved your goal: {data['name']}!"
+            elif progress >= 75:
+                milestone_title = 'Goal Milestone: 75% \U0001F680'
+                milestone_msg = f"You are almost there! 75% of your goal '{data['name']}' is complete."
+            elif progress >= 50:
+                milestone_title = 'Goal Milestone: 50% \U0001F4AA'
+                milestone_msg = f"Halfway there! You've reached 50% of your goal '{data['name']}'."
+            elif progress >= 25:
+                milestone_title = 'Goal Milestone: 25% \U0001F331'
+                milestone_msg = f"Great start! You've reached 25% of your goal '{data['name']}'."
+            else:
+                milestone_title = None
+
+            if milestone_title:
+                cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    NotificationService.create_notification(
+                        user_id,
+                        'goal_milestone',
+                        milestone_title,
+                        milestone_msg,
+                        '/savings',
+                        conn=conn,
+                        cursor=cursor
+                    )
 
         conn.commit()
         return goal_id
@@ -128,7 +147,7 @@ def update_goal(user_id, goal_id, data):
         cursor.execute(
             """
             UPDATE savings_goals
-            SET name=%s, target_amount=%s, current_amount=%s, color=%s, deadline=%s
+            SET name=%s, target_amount=%s, current_amount=%s, color=%s, icon=%s, priority=%s, deadline=%s
             WHERE goal_id=%s AND user_id=%s
             """,
             (
@@ -136,6 +155,8 @@ def update_goal(user_id, goal_id, data):
                 data['target'],
                 data['current'],
                 data.get('color', 'bg-blue-500'),
+                data.get('icon', 'fa-bullseye'),
+                data.get('priority', 'medium'),
                 data.get('deadline'),
                 goal_id,
                 user_id
@@ -157,22 +178,41 @@ def update_goal(user_id, goal_id, data):
                 )
             )
 
-        # Check milestone for updated goal
+        # Check milestones for updated goal
         target_amount = _to_decimal(data['target'])
-        if new_amount >= target_amount and old_amount < target_amount:
-            cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
-            user_row = cursor.fetchone()
-            if user_row and user_row[0]:
-                msg = f"Congratulations! You've achieved your goal: {data['name']}!"
-                NotificationService.create_notification(
-                    user_id,
-                    'goal_milestone',
-                    'Goal Achieved \U0001F389',
-                    msg,
-                    '/savings',
-                    conn=conn,
-                    cursor=cursor
-                )
+        if target_amount > ZERO_MONEY:
+            old_progress = (old_amount / target_amount) * 100
+            new_progress = (new_amount / target_amount) * 100
+            
+            milestone_title = None
+            milestone_msg = None
+            
+            if new_progress >= 100 and old_progress < 100:
+                milestone_title = 'Goal Achieved \U0001F389'
+                milestone_msg = f"Congratulations! You've achieved your goal: {data['name']}!"
+            elif new_progress >= 75 and old_progress < 75:
+                milestone_title = 'Goal Milestone: 75% \U0001F680'
+                milestone_msg = f"You are almost there! 75% of your goal '{data['name']}' is complete."
+            elif new_progress >= 50 and old_progress < 50:
+                milestone_title = 'Goal Milestone: 50% \U0001F4AA'
+                milestone_msg = f"Halfway there! You've reached 50% of your goal '{data['name']}'."
+            elif new_progress >= 25 and old_progress < 25:
+                milestone_title = 'Goal Milestone: 25% \U0001F331'
+                milestone_msg = f"Great start! You've reached 25% of your goal '{data['name']}'."
+
+            if milestone_title:
+                cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
+                user_row = cursor.fetchone()
+                if user_row and user_row[0]:
+                    NotificationService.create_notification(
+                        user_id,
+                        'goal_milestone',
+                        milestone_title,
+                        milestone_msg,
+                        '/savings',
+                        conn=conn,
+                        cursor=cursor
+                    )
 
         conn.commit()
 

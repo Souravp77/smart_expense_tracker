@@ -37,6 +37,8 @@ CREATE TABLE savings_goals (
     target_amount DECIMAL(10, 2) NOT NULL,
     current_amount DECIMAL(10, 2) DEFAULT 0.00,
     color VARCHAR(20) DEFAULT 'bg-blue-500',
+    icon VARCHAR(50) DEFAULT 'fa-bullseye',
+    priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
     deadline DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY idx_savings_goals_user (user_id),
@@ -130,8 +132,8 @@ INSERT INTO categories (user_id, name, type) VALUES
 INSERT INTO users (username, email, password_hash) VALUES
 ('Demo User', 'demo@example.com', '$2b$12$jAJ/UDnvehDkOfVUxGY/LOBcsSkyDWlRtzgHfLUUu713d4sAok1TC');
 
-INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color, deadline) VALUES
-(1, 'Summer Trip', 150000.00, 45000.00, 'bg-indigo-500', '2026-08-15');
+INSERT INTO savings_goals (user_id, name, target_amount, current_amount, color, icon, priority, deadline) VALUES
+(1, 'Summer Trip', 150000.00, 45000.00, 'bg-indigo-500', 'fa-plane', 'high', '2026-08-15');
 
 INSERT INTO transactions (user_id, category, amount, type, description, date, method) VALUES
 (1, 'Salary', 320000.00, 'income', 'Monthly salary', '2026-02-01', 'Bank Transfer'),

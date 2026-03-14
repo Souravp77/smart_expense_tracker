@@ -126,6 +126,11 @@ export const goalModal = {
         if (idInput) idInput.value = '';
         const currentInput = form?.elements?.current;
         if (currentInput) currentInput.value = '0';
+        
+        const iconSelect = form?.elements?.icon;
+        if (iconSelect) iconSelect.value = 'fa-bullseye';
+        const prioritySelect = form?.elements?.priority;
+        if (prioritySelect) prioritySelect.value = 'medium';
 
         // Reset swatches to default blue
         if (form) {
@@ -167,6 +172,9 @@ export const goalModal = {
         form.elements.target.value = goal.target_amount;
         form.elements.current.value = goal.current_amount;
         if (form.elements.deadline) form.elements.deadline.value = goal.deadline || '';
+
+        if (form.elements.icon) form.elements.icon.value = goal.icon || 'fa-bullseye';
+        if (form.elements.priority) form.elements.priority.value = goal.priority || 'medium';
 
         // Restore saved color swatch
         const savedColor = normalizeGoalColor(goal.color || 'bg-blue-500');

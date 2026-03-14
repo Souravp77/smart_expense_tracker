@@ -3,9 +3,8 @@ export function renderSettingsView(app, container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="ui-page-head">
-                <h3 class="ui-page-title">Settings</h3>
-                <p class="ui-page-subtitle">Manage profile, appearance, and system diagnostics.</p>
+            <div class="glass rounded-2xl p-4">
+                <p class="text-sm text-slate-500">Manage profile, appearance, and system diagnostics.</p>
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-5 ui-panel">

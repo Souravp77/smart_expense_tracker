@@ -145,10 +145,11 @@ export function renderBudgetView(app, container) {
                     ${budget > 0 ? `<span class="budget-card-badge ${badge}">${categoryUsage > 100 ? 'Over' : categoryUsage >= 90 ? 'Danger' : categoryUsage >= 70 ? 'Warning' : 'Safe'}</span>` : ''}
                 </div>
 
+                ${budget > 0 ? `
                 <div class="budget-card-amounts">
                     <div class="budget-amount-box">
                         <p>Budget</p>
-                        <h5>${budget > 0 ? formatCurrency(budget, app.state.user?.currency) : '—'}</h5>
+                        <h5>${formatCurrency(budget, app.state.user?.currency)}</h5>
                     </div>
                     <div class="budget-amount-box text-right">
                         <p>Spent</p>
@@ -159,6 +160,12 @@ export function renderBudgetView(app, container) {
                 <div class="budget-progress-track">
                     <div class="budget-progress-fill ${tone}" style="width: ${Math.min(100, categoryUsage)}%"></div>
                 </div>
+                ` : `
+                <div class="py-8 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-4 border border-dashed border-slate-200 dark:border-slate-700">
+                    <p class="text-xs text-slate-400 mb-1">Set a limit to track spending</p>
+                    <p class="text-sm font-medium text-slate-500">Current Spend: ${formatCurrency(spent, app.state.user?.currency)}</p>
+                </div>
+                `}
 
                 <div class="budget-card-footer">
                     <span class="budget-remaining-text ${remaining < 0 ? 'text-red-500' : 'text-slate-500'}">

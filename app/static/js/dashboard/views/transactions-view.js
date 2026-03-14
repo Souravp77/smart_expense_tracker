@@ -16,10 +16,10 @@ export function renderTransactionsView(app, container) {
         <div class="glass rounded-2xl overflow-hidden">
             <div class="p-6 border-b border-slate-200 dark:border-slate-800 space-y-4">
                 <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-lg">Transactions</h3>
+                    <p class="text-sm text-slate-500">Filter and manage all your income and expenses in one place.</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <input id="transactionSearchInput" type="text" class="form-input md:col-span-3" placeholder="Search description or category..." value="${app.state.filterSearch || ''}" oninput="app.setTransactionSearch(this.value, this.selectionStart)">
                     <select class="form-input" onchange="app.setTransactionType(this.value)">
                         <option value="all" ${app.state.filterType === 'all' ? 'selected' : ''}>All</option>

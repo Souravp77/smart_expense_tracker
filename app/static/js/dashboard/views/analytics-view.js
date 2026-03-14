@@ -47,9 +47,8 @@ export function renderAnalyticsView(app, container) {
 
     container.innerHTML = `
         <div class="space-y-6">
-            <div class="ui-page-head">
-                <h3 class="ui-page-title">Analytics</h3>
-                <p class="ui-page-subtitle">Break down trends, spending patterns, and monthly savings performance.</p>
+            <div class="glass rounded-2xl p-4">
+                <p class="text-sm text-slate-500">Break down trends, spending patterns, and monthly savings performance.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">

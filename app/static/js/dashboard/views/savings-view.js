@@ -16,14 +16,16 @@ function renderEmptyState() {
 }
 
 export function renderSavingsView(app, container) {
-    const goals = app.state.savingsGoals || [];
+    const priorityMap = { high: 3, medium: 2, low: 1 };
+    const rawGoals = app.state.savingsGoals || [];
+    const goals = [...rawGoals].sort((a, b) => (priorityMap[b.priority || 'medium'] || 0) - (priorityMap[a.priority || 'medium'] || 0));
+    
 
     container.innerHTML = `
         <section class="sav-module" aria-label="Savings Goals">
-            <div class="budget-header glass">
-                <div class="ui-page-head">
-                    <h3 class="ui-page-title">Savings Goals</h3>
-                    <p class="ui-page-subtitle">Track progress and keep goals moving each month.</p>
+            <div class="budget-header glass flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-slate-500">Track progress and keep goals moving each month.</p>
                 </div>
                 <button onclick="goalModal.open()" class="btn-primary"><i class="fas fa-plus"></i> New Goal</button>
             </div>

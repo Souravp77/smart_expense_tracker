@@ -318,7 +318,22 @@ export class ExpenseApp {
         });
 
         const pageTitle = document.getElementById('pageTitle');
-        if (pageTitle) pageTitle.textContent = tab.charAt(0).toUpperCase() + tab.slice(1);
+        if (pageTitle) {
+            const titleMap = {
+                dashboard: 'Dashboard',
+                budget: 'Budget',
+                transactions: 'Transactions',
+                savings: 'Savings Goals',
+                analytics: 'Analytics',
+                settings: 'Settings'
+            };
+            pageTitle.textContent = titleMap[tab] || tab.charAt(0).toUpperCase() + tab.slice(1);
+        }
+
+        const greetingEl = document.getElementById('greeting');
+        if (greetingEl) {
+            greetingEl.classList.toggle('hidden', tab !== 'dashboard');
+        }
 
         this.closeSidebar();
         this.render();
@@ -528,8 +543,11 @@ export class ExpenseApp {
         const status = this.getGoalStatus(pct);
         const deadline = this.getGoalDeadlineText(g.deadline);
         const isCelebrating = this.goalCelebrationId === g.id;
-        const icon = this.getGoalIcon(g.name);
+        const icon = g.icon || this.getGoalIcon(g.name);
         const colorProfile = this.getGoalColorProfile(g.color);
+        const priority = g.priority || 'medium';
+        const priorityIcon = { high: 'fa-angles-up', medium: 'fa-angle-up', low: 'fa-angle-down' }[priority];
+        const priorityClass = { high: 'text-rose-500 bg-rose-50 dark:bg-rose-900/20', medium: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20', low: 'text-slate-500 bg-slate-100 dark:bg-slate-800' }[priority];
 
         // Monthly contribution insight
         let contributionHint = '';
@@ -553,7 +571,10 @@ export class ExpenseApp {
                     <div class="goal-icon goal-icon-custom">
                         <i class="fas ${icon}"></i>
                     </div>
-                    <div class="goal-head-meta">
+                    <div class="goal-head-meta flex items-center gap-2">
+                        <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${priorityClass}">
+                            <i class="fas ${priorityIcon}"></i> ${priority}
+                        </span>
                         <span class="goal-status ${status.className}">${status.label}</span>
                     </div>
                 </div>
@@ -1686,8 +1707,7 @@ export class ExpenseApp {
     updateDate() {
         const dateEl = document.getElementById('currentDate');
         if (!dateEl) return;
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        dateEl.textContent = new Date().toLocaleDateString('en-US', options);
+        dateEl.textContent = formatDate(new Date(), { long: true });
     }
 
     updateUserProfileUI() {
@@ -1695,7 +1715,10 @@ export class ExpenseApp {
         document.getElementById('sidebarName').textContent = this.state.user.name || 'User';
         document.getElementById('sidebarEmail').textContent = this.state.user.email || '';
         document.getElementById('sidebarAvatar').textContent = (this.state.user.name || 'U').charAt(0).toUpperCase();
-        document.getElementById('greeting').textContent = `Welcome back, ${(this.state.user.name || 'User').split(' ')[0]}!`;
+        const greeting = document.getElementById('greeting');
+        if (greeting) {
+            greeting.textContent = `Welcome back, ${(this.state.user.name || 'User').split(' ')[0]}!`;
+        }
         this.updateCurrencyUI();
     }
 
