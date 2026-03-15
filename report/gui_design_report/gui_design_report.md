@@ -73,6 +73,7 @@ Instead of navigating users away to separate pages for data entry, modals (`moda
 *   **Glassmorphism:** The modals sit on top of a subtle backdrop blur (`backdrop-filter: blur(4px)`), drawing the user's absolute focus to the task at hand.
 *   **The "Professional Edition" Goal Modal:** The Savings Goal creation modal represents the peak of the UI's design. It features a custom gradient header, icon integration, and a bespoke color picker.
 *   **Quick Suggestion Chips:** To drastically speed up UX, the Goal Modal includes interactive "chips" (e.g., '✈️ Travel', '🎓 Education'). Clicking a chip automatically populates the form field, minimizing keyboard input.
+*   **Icon & Priority System:** Users can now personalize goals with a curated set of FontAwesome icons and assign priorities (Low, Medium, High). These metadata points are visually integrated into the goal cards for better information hierarchy.
 
 ### 7.2 Toast Notification System
 Feedback is crucial in a GUI. The app features a custom, bottom-right notification stack.

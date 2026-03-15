@@ -14,6 +14,25 @@ The dashboard aggregates the primary financial data for the user.
 ![Dashboard Light Mode](./report_assets/dashboard_light.png)
 *Figure 1.1: The main dashboard populated with data from the `/api/data` endpoint.*
 
+### Typical Data Flow (Transaction Creation)
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant DB
+    
+    User->>Frontend: Fill Form & Submit
+    Frontend->>API: POST /api/transactions
+    API->>API: Validate Payload
+    API->>DB: INSERT INTO transactions
+    DB-->>API: Success
+    API-->>Frontend: 201 Created (Success)
+    Frontend->>API: GET /api/data (Refresh)
+    API-->>Frontend: 200 OK (Latest Balance)
+    Frontend->>User: Update UI & Show Toast
+```
+
 ---
 
 ## 2. Transactions API
@@ -38,11 +57,11 @@ Endpoints for managing financial transactions (income and expenses).
 Endpoints to track and manage user savings goals.
 
 - **`POST /api/goals`**
-  Creates a new savings goal.
+  Creates a new savings goal. Payload includes `name`, `target`, `current`, `color`, `icon`, `priority`, and `deadline`.
 - **`PUT /api/goals/<id>`**
-  Updates a specific savings goal.
+  Updates a specific savings goal with full payload support.
 - **`DELETE /api/goals/<id>`**
-  Removes a savings goal from the user's account.
+  Removes a savings goal from the user's account and cleans up associated audit transactions.
 
 ### Savings Goals Integration
 ![Savings Goals](./report_assets/savings_goals.png)

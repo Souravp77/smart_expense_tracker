@@ -12,6 +12,18 @@ The core entity is the **User**. Every other financial data point revolves aroun
 - **Users (1)** to **Many** (Transactions, Categories, Budgets, Savings Goals, Notifications).
 - This structure ensures that if a user account is deleted, all associated financial records are removed automatically to comply with data privacy standards and maintain database hygiene.
 
+### Entity Relationship Diagram
+```mermaid
+erDiagram
+    USERS ||--o{ TRANSACTIONS : records
+    USERS ||--o{ CATEGORIES : owns
+    USERS ||--o{ BUDGETS : sets
+    USERS ||--o{ SAVINGS_GOALS : tracks
+    USERS ||--o{ NOTIFICATIONS : receives
+    CATEGORIES ||--o{ TRANSACTIONS : classifies
+    CATEGORIES ||--o{ BUDGETS : limits
+```
+
 ---
 
 ## 3. Database Schema Details
@@ -87,6 +99,8 @@ Tracks long-term financial objectives and milestones.
 | `target_amount` | DECIMAL(10,2) | NOT NULL | The financial target |
 | `current_amount` | DECIMAL(10,2) | DEFAULT 0.00 | Amount saved so far |
 | `color` | VARCHAR(20) | DEFAULT 'bg-blue-500' | UI identifier for frontend rendering |
+| `icon` | VARCHAR(50) | DEFAULT 'fa-bullseye' | FontAwesome icon class |
+| `priority` | ENUM | DEFAULT 'medium' | ('low', 'medium', 'high') |
 | `deadline` | DATE | NULL | Target completion date |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 
@@ -97,11 +111,12 @@ Stores systemic alerts regarding user activity (like exceeding budgets or hittin
 | :--- | :--- | :--- | :--- |
 | `notification_id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique alert identifier |
 | `user_id` | INT | FOREIGN KEY, NOT NULL | Targeted user |
-| `type` | ENUM | NOT NULL | 'budget_alert', 'goal_milestone', etc. |
+| `type` | ENUM | NOT NULL | 'budget_alert', 'goal_milestone', 'reminder', 'system_message' |
 | `title` | VARCHAR(100) | NOT NULL | Alert summary |
 | `message` | TEXT | NOT NULL | Alert detailed content |
 | `is_read` | BOOLEAN | DEFAULT FALSE | Read receipt tracking |
 | `action_url` | VARCHAR(255) | DEFAULT NULL | Optional redirect link |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Notification creation time |
 
 ---
 

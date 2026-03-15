@@ -15,6 +15,7 @@ The backend is engineered using **Python 3** and the **Flask** microframework. T
 *   **Flask-Login:** Utilized for comprehensive session management, handling user authentication states (logging in, logging out, restricting access to protected routes).
 *   **Flask-Bcrypt:** Provides cryptographic password hashing. It ensures that user credentials are securely salted, hashed, and verified against dictionary and brute-force attacks.
 *   **python-dotenv:** Manages configuration securely. It loads environment variables from a `.env` file into the application's environment, keeping secrets (like `SECRET_KEY` and database credentials) out of the source code.
+*   **Notification Service:** A dedicated backend service layer for managing system-generated alerts (milestones, budget warnings, reminders). It handles persistence and state tracking for user notifications.
 
 ---
 
@@ -42,6 +43,16 @@ The frontend is designed to be highly interactive, responsive, and visually mode
 *   **Vanilla JavaScript (ES6 Modules):** Manages dynamic frontend interactions such as modal toggling, sidebar navigation, form validation, theming, and asynchronous UI updates without full page reloads. Using native ES6 (`type="module"`) allows for clean separation of concerns.
 *   **Chart.js:** An HTML5 canvas-based JavaScript charting library. It powers the "Analytics" and "Dashboard" views to provide rich, animated programmatic data visualizations (e.g., spending patterns, income vs. expense graphs).
 
+### Architecture Visualization
+```mermaid
+graph TD
+    User((User)) <--> UI[Frontend: HTML5/Tailwind/Vanilla JS]
+    UI <--> Backend[Backend: Flask/Python]
+    Backend <--> DB[(Database: MySQL)]
+    Backend -.-> Services[Services: Finance/Goals/Notif]
+    UI -.-> Charts[Charts: Chart.js]
+```
+
 ---
 
 ## 5. Testing & Quality Assurance
@@ -62,5 +73,6 @@ Robust testing infrastructure ensures application stability against regressions 
 ## 7. Key Architectural Decisions
 
 1.  **Monolithic Design:** By rendering templates on the server and using standard form submissions and select JS overlays, the project emphasizes straightforward, secure data flow over complex client-server API sync states.
-2.  **Utility-First CSS:** The adoption of Tailwind CSS eliminates the need for maintaining sprawling custom CSS files (`dashboard.css` is only used for very specific custom overrides), significantly expediting UI feature development.
+2.  **Utility-First CSS + Custom Overrides:** The adoption of Tailwind CSS eliminates the need for maintaining sprawling custom CSS files. Specific high-fidelity components (like the "Goal Modal") utilize a focused `dashboard.css` for complex glassmorphic effects and animations.
 3.  **Modular Vanilla Scripting:** Eschewing heavy JS frameworks in favor of modular vanilla JavaScript keeps the payload minimal, loading times hyper-fast, and minimizes external dependencies.
+4.  **Service-Oriented Backend:** The backend logic is decoupled into specialized services (Finance, Goal, Notification, Dashboard), ensuring maintainability and clear separation of concerns.

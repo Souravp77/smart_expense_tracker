@@ -43,3 +43,4 @@ def seed_demo_data(user_id):
         )
 
         conn.commit()
+

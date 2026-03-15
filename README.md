@@ -8,6 +8,7 @@ A Flask + MySQL web app to track income/expenses, budgets, and savings goals.
 - Savings goals CRUD
 - Monthly budget limits
 - Dashboard + analytics charts
+- Notification system (Milestones, Reminders)
 - Currency setting
 - API/DB health endpoint
 
