@@ -9,7 +9,7 @@ import {
 import { CATEGORY_OPTIONS, CHART_COLORS } from './constants.js';
 import { bindDatabaseSync } from './sync.js';
 import { filterByPeriod, monthLabel, toISODate } from './time-utils.js';
-import { escapeHtml, formatCurrency, formatDate, loading, toast } from './utils.js';
+import { escapeHtml, formatCurrency, formatDate, loading, toast, normalizeGoalColor } from './utils.js';
 import { NotificationManager } from './notifications.js';
 
 const GOAL_COLOR_PROFILES = {
@@ -136,9 +136,9 @@ export class ExpenseApp {
 
         await this.fetchData();
 
-        // Start notification polling every 60s
+        // Start notification polling every 10s (faster updates)
         this.notifications.fetchNotifications();
-        setInterval(() => this.notifications.fetchNotifications(), 60000);
+        setInterval(() => this.notifications.fetchNotifications(), 10000);
 
         bindDatabaseSync(this);
     }
@@ -664,19 +664,9 @@ export class ExpenseApp {
         };
     }
 
-    normalizeGoalColor(color) {
-        const aliases = {
-            'bg-sky-500': 'bg-blue-500',
-            'bg-cyan-500': 'bg-teal-600',
-            'bg-blue-700': 'bg-indigo-600',
-            'bg-indigo-500': 'bg-indigo-600',
-            'bg-emerald-500': 'bg-teal-600',
-        };
-        return aliases[color] || color || 'bg-blue-500';
-    }
 
     getGoalColorProfile(color) {
-        const normalized = this.normalizeGoalColor(color);
+        const normalized = normalizeGoalColor(color);
         return GOAL_COLOR_PROFILES[normalized] || GOAL_COLOR_PROFILES['bg-blue-500'];
     }
 

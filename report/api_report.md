@@ -39,13 +39,19 @@ sequenceDiagram
 Endpoints for managing financial transactions (income and expenses).
 
 - **`GET /api/transactions`**
-  Lists transactions for the user. Supports `q` for search queries and `limit` for pagination/limiting.
+  Lists transactions for the user.
+  - **Query Parameters**:
+    - `q`: Search string for description or category.
+    - `limit`: Number of records (default: 1000, max: 2000).
+  - **Response**: `{"transactions": [...]}`
 - **`POST /api/transactions`**
-  Creates a new transaction. Returns the newly created transaction ID.
+  Creates a new transaction.
+  - **Payload**: `{type, amount, category, date (YYYY-MM-DD), method, description}`
+  - **Validation**: Amount must be > 0 and within DECIMAL(10,2) limits. Category length max 50.
 - **`PUT /api/transactions/<id>`**
-  Updates an existing transaction identified by its ID.
+  Updates an existing transaction. (Note: System-generated goal funding transactions are read-only).
 - **`DELETE /api/transactions/<id>`**
-  Deletes an existing transaction.
+  Deletes a transaction. (Note: System-generated goal funding transactions cannot be deleted).
 
 ### Adding a Transaction
 ![Add Transaction Modal](./report_assets/add_transaction.png)
@@ -57,11 +63,13 @@ Endpoints for managing financial transactions (income and expenses).
 Endpoints to track and manage user savings goals.
 
 - **`POST /api/goals`**
-  Creates a new savings goal. Payload includes `name`, `target`, `current`, `color`, `icon`, `priority`, and `deadline`.
+  Creates a new savings goal.
+  - **Payload**: `{name, target, current, deadline (YYYY-MM-DD), color}`
+  - **Validation**: Current amount cannot exceed target. Color must be from the allowed Tailwind palette.
 - **`PUT /api/goals/<id>`**
-  Updates a specific savings goal with full payload support.
+  Updates a specific savings goal.
 - **`DELETE /api/goals/<id>`**
-  Removes a savings goal from the user's account and cleans up associated audit transactions.
+  Removes a savings goal.
 
 ### Savings Goals Integration
 ![Savings Goals](./report_assets/savings_goals.png)
@@ -76,9 +84,10 @@ Endpoints to track and manage user savings goals.
 Endpoints designed for creating and managing spending limits.
 
 - **`POST /api/budgets`** (or `/api/budget`)
-  Upserts a budget. If the budget doesn't exist it is created, otherwise updated.
+  Upserts a budget for a category and month.
+  - **Payload**: `{category, amount, month (YYYY-MM)}`
 - **`DELETE /api/budgets/<id>`**
-  Deletes a specific budget.
+  Deletes a specific budget entry.
 
 ---
 

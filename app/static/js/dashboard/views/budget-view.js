@@ -52,13 +52,13 @@ export function renderBudgetView(app, container) {
     const currentMonth = app.state.budgetMonth || new Date().toISOString().slice(0, 7);
     if (!app.state.budgetMonth) app.state.budgetMonth = currentMonth;
 
+    const categoriesFromBudget = (app.state.budgets || []).map((b) => b.category).filter(Boolean);
     const categories = typeof app.getBudgetCategories === 'function'
         ? app.getBudgetCategories()
         : (app.state.categories?.expense || []);
-    const allowedCategorySet = new Set(categories);
-    const monthBudgets = app.state.budgets.filter(
-        (b) => b.month === currentMonth && allowedCategorySet.has(b.category)
-    );
+    const combinedCategories = [...new Set([...categories, ...categoriesFromBudget])];
+    const allowedCategorySet = new Set(combinedCategories);
+    const monthBudgets = app.state.budgets.filter((b) => b.month === currentMonth);
     const budgetMap = new Map(monthBudgets.map((b) => [b.category, toNumber(b.amount)]));
 
     const spentMap = new Map();
@@ -97,9 +97,12 @@ export function renderBudgetView(app, container) {
         isFutureMonth = true;
     }
 
+    const dailyAverage = isFutureMonth ? 0 : totalSpent / Math.max(1, effectiveToday);
+    const dailyAverageLabel = isFutureMonth ? 'Future month' : 'Projected pace';
+
     const warningItems = [];
 
-    const cards = categories.map((category) => {
+    const cards = combinedCategories.map((category) => {
         const budget = budgetMap.get(category) || 0;
         const spent = spentMap.get(category) || 0;
         const remaining = budget - spent;
@@ -216,44 +219,6 @@ export function renderBudgetView(app, container) {
                 </div>
             </header>
 
-            ${totalBudget > 0 ? `
-            <div class="budget-summary-grid">
-                <div class="budget-stat-card">
-                    <span class="budget-stat-label">Allocated</span>
-                    <span class="budget-stat-value">${formatCurrency(totalBudget, app.state.user?.currency)}</span>
-                    <span class="budget-stat-sub text-slate-400">In ${categories.length} categories</span>
-                </div>
-                <div class="budget-stat-card">
-                    <span class="budget-stat-label">Consumed</span>
-                    <span class="budget-stat-value">${formatCurrency(totalSpent, app.state.user?.currency)}</span>
-                    <span class="budget-stat-sub ${totalUsage > 100 ? 'negative' : 'positive'}">
-                        ${totalUsage}% of total
-                    </span>
-                </div>
-                <div class="budget-stat-card">
-                    <span class="budget-stat-label">Available</span>
-                    <span class="budget-stat-value">${formatCurrency(Math.max(0, totalRemaining), app.state.user?.currency)}</span>
-                    <span class="budget-stat-sub ${isPastMonth ? 'text-slate-400' : 'positive'}">
-                        ${isPastMonth ? 'Month ended' : 'To spend'}
-                    </span>
-                </div>
-                <div class="budget-stat-card">
-                    <span class="budget-stat-label">Daily Average</span>
-                    <span class="budget-stat-value">${formatCurrency(totalSpent / Math.max(1, effectiveToday), app.state.user?.currency)}</span>
-                    <span class="budget-stat-sub text-slate-400">Projected pace</span>
-                </div>
-            </div>
-
-            <div class="budget-global-container shadow-sm ${totalUsage > 100 ? 'budget-over-shake' : ''}">
-                <div class="budget-global-meta">
-                    <span class="budget-global-title font-black uppercase tracking-widest text-[10px] text-slate-400">Overall Budget Utilization</span>
-                    <span class="budget-global-pct ${globalTone}">${totalUsage}%</span>
-                </div>
-                <div class="budget-progress-track">
-                    <div class="budget-progress-fill ${globalTone}" style="width: ${Math.min(100, totalUsage)}%"></div>
-                </div>
-            </div>
-            ` : ''}
 
             <div class="budget-category-grid">
                 ${cards}

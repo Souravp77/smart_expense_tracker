@@ -10,4 +10,4 @@ class Config:
     MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD') or ''
     MYSQL_DB = os.environ.get('MYSQL_DB') or 'expense_db'
     MYSQL_CURSORCLASS = 'DictCursor'
-    SEED_DEMO_DATA_ON_REGISTER = os.environ.get('SEED_DEMO_DATA_ON_REGISTER', 'true').lower() == 'true'
+    SEED_DEMO_DATA_ON_REGISTER = os.environ.get('SEED_DEMO_DATA_ON_REGISTER', 'false').lower() == 'true'

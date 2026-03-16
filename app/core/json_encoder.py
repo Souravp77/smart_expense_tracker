@@ -8,4 +8,6 @@ class CustomJSONProvider(DefaultJSONProvider):
             return float(obj)
         if isinstance(obj, datetime.date):
             return obj.isoformat()
+        if isinstance(obj, (set, tuple)):
+            return list(obj)
         return super().default(obj)

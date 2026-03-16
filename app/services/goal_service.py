@@ -97,6 +97,9 @@ def add_goal(user_id, data):
         target_amount = _to_decimal(data['target'])
         if target_amount > ZERO_MONEY:
             progress = (current_amount / target_amount) * 100
+            milestone_title = None
+            milestone_msg = None
+
             if progress >= 100:
                 milestone_title = 'Goal Achieved \U0001F389'
                 milestone_msg = f"Congratulations! You've achieved your goal: {data['name']}!"
@@ -109,8 +112,6 @@ def add_goal(user_id, data):
             elif progress >= 25:
                 milestone_title = 'Goal Milestone: 25% \U0001F331'
                 milestone_msg = f"Great start! You've reached 25% of your goal '{data['name']}'."
-            else:
-                milestone_title = None
 
             if milestone_title:
                 cursor.execute("SELECT notify_goal_milestones FROM users WHERE user_id = %s", (user_id,))
@@ -134,27 +135,27 @@ def update_goal(user_id, goal_id, data):
     from datetime import date
     with db_cursor() as (conn, cursor):
         # Fetch current state to see if amount increased
-        cursor.execute("SELECT current_amount, name FROM savings_goals WHERE goal_id=%s AND user_id=%s", (goal_id, user_id))
+        cursor.execute("SELECT current_amount, name FROM savings_goals WHERE goal_id = %s AND user_id = %s", (goal_id, user_id))
         row = cursor.fetchone()
         if not row:
             raise ResourceNotFoundError("Goal not found")
         
         old_amount = _to_decimal(row[0])
-        new_amount = _to_decimal(data.get('current', 0))
+        new_amount = _to_decimal(data['current'])
         
         _assert_savings_within_income(cursor, user_id, new_amount, exclude_goal_id=goal_id)
-        
+
         cursor.execute(
             """
-            UPDATE savings_goals
-            SET name=%s, target_amount=%s, current_amount=%s, color=%s, icon=%s, priority=%s, deadline=%s
-            WHERE goal_id=%s AND user_id=%s
+            UPDATE savings_goals 
+            SET name = %s, target_amount = %s, current_amount = %s, color = %s, icon = %s, priority = %s, deadline = %s
+            WHERE goal_id = %s AND user_id = %s
             """,
             (
                 data['name'],
                 data['target'],
                 data['current'],
-                data.get('color', 'bg-blue-500'),
+                data['color'],
                 data.get('icon', 'fa-bullseye'),
                 data.get('priority', 'medium'),
                 data.get('deadline'),
@@ -163,8 +164,8 @@ def update_goal(user_id, goal_id, data):
             )
         )
 
-        # Create audit transaction if funded
         if new_amount > old_amount:
+            diff = new_amount - old_amount
             cursor.execute(
                 """
                 INSERT INTO transactions (user_id, type, amount, category, description, date)
@@ -172,7 +173,7 @@ def update_goal(user_id, goal_id, data):
                 """,
                 (
                     user_id,
-                    new_amount - old_amount,
+                    diff,
                     f"[Goal#{goal_id}] Funded goal",
                     date.today().isoformat()
                 )
@@ -217,11 +218,10 @@ def update_goal(user_id, goal_id, data):
         conn.commit()
 
 
-
 def delete_goal(user_id, goal_id):
     with db_cursor() as (conn, cursor):
         _lock_user_row(cursor, user_id)
-        cursor.execute("DELETE FROM savings_goals WHERE goal_id=%s AND user_id=%s", (goal_id, user_id))
+        cursor.execute("DELETE FROM savings_goals WHERE goal_id = %s AND user_id = %s", (goal_id, user_id))
         if cursor.rowcount == 0:
             raise ResourceNotFoundError("Goal not found")
 

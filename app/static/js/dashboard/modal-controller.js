@@ -1,3 +1,5 @@
+import { normalizeGoalColor } from './utils.js';
+
 export const modal = {
     element: () => document.getElementById('transactionModal'),
     open() {
@@ -51,7 +53,17 @@ export const modal = {
         }
 
         const el = this.element();
-        if (el) el.style.display = 'flex';
+        if (el) {
+            el.style.display = 'flex';
+            // Autofocus amount field for new transaction
+            setTimeout(() => {
+                const amountInput = document.getElementById('txAmount');
+                if (amountInput) {
+                    amountInput.focus();
+                    amountInput.select();
+                }
+            }, 100);
+        }
     },
     openForEdit(tx) {
         const form = document.getElementById('transactionForm');
@@ -87,7 +99,17 @@ export const modal = {
         }
 
         const el = this.element();
-        if (el) el.style.display = 'flex';
+        if (el) {
+            el.style.display = 'flex';
+            // Autofocus amount field for edit transaction
+            setTimeout(() => {
+                const amountInput = document.getElementById('txAmount');
+                if (amountInput) {
+                    amountInput.focus();
+                    amountInput.select();
+                }
+            }, 100);
+        }
     },
     close() {
         const el = this.element();
@@ -96,16 +118,6 @@ export const modal = {
     }
 };
 
-function normalizeGoalColor(color) {
-    const aliases = {
-        'bg-sky-500': 'bg-blue-500',
-        'bg-cyan-500': 'bg-teal-600',
-        'bg-blue-700': 'bg-indigo-600',
-        'bg-indigo-500': 'bg-indigo-600',
-        'bg-emerald-500': 'bg-teal-600',
-    };
-    return aliases[color] || color || 'bg-blue-500';
-}
 
 export const goalModal = {
     element: () => document.getElementById('goalModal'),

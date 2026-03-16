@@ -148,3 +148,13 @@ export const loading = {
         }
     }
 };
+export const normalizeGoalColor = (color) => {
+    const aliases = {
+        'bg-sky-500': 'bg-blue-500',
+        'bg-cyan-500': 'bg-teal-600',
+        'bg-blue-700': 'bg-indigo-600',
+        'bg-indigo-500': 'bg-indigo-600',
+        'bg-emerald-500': 'bg-teal-600',
+    };
+    return aliases[color] || color || 'bg-blue-500';
+};

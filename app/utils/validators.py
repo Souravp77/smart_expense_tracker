@@ -76,10 +76,13 @@ def validate_transaction_payload(data):
 
     if len(category) > 50:
         raise ValueError("Category must be 50 characters or fewer")
-    # Keep recommended categories, but allow custom user-provided categories.
-    if tx_type == 'expense' and category in ALLOWED_EXPENSE_CATEGORIES:
+    # If the user provides a category, we accept it. 
+    # In a more strict system, we'd check if it's in ALLOWED_EXPENSE_CATEGORIES/ALLOWED_INCOME_CATEGORIES
+    # unless it's a known custom category. For now, we enforce length and non-empty.
+    if tx_type == 'expense' and category not in ALLOWED_EXPENSE_CATEGORIES:
+        # We allow it, but we could log a warning or enforce a 'custom' flag if the architecture required.
         pass
-    elif tx_type == 'income' and category in ALLOWED_INCOME_CATEGORIES:
+    elif tx_type == 'income' and category not in ALLOWED_INCOME_CATEGORIES:
         pass
     data['category'] = category
 

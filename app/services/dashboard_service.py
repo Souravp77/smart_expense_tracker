@@ -17,25 +17,6 @@ def _to_decimal(value):
 def _to_money_float(value):
     return float(_to_decimal(value).quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP))
 
-DEFAULT_INCOME_CATEGORIES = [
-    'Salary',
-    'Freelance',
-    'Investment',
-    'Gift',
-]
-
-DEFAULT_EXPENSE_CATEGORIES = [
-    'Food & Dining',
-    'Shopping',
-    'Entertainment',
-    'Travel / Outings',
-    'Personal Care',
-    'Parties',
-    'Subscriptions',
-    'Other Expense',
-]
-
-
 def _fetch_finance_summary(cursor, user_id):
     cursor.execute(
         """
@@ -133,11 +114,15 @@ def get_dashboard_payload(user):
         income_cats = [c['name'] for c in categories_raw if c['type'] == 'income']
         expense_cats = [c['name'] for c in categories_raw if c['type'] == 'expense']
 
-        # Merge defaults so UI stays consistent even when older DB seeds are present.
-        # dict.fromkeys is slightly faster than set for preserving order, but a direct loop/set combo or just dict.fromkeys is fine.
+        DEFAULT_INCOME_CATEGORIES = ['Salary', 'Freelance', 'Investment', 'Gift']
+        DEFAULT_EXPENSE_CATEGORIES = ['Food & Dining', 'Shopping', 'Entertainment', 'Travel / Outings', 'Personal Care', 'Parties', 'Subscriptions', 'Other Expense']
+        
+        income_cats = sorted(list(set(income_cats + DEFAULT_INCOME_CATEGORIES)))
+        expense_cats = sorted(list(set(expense_cats + DEFAULT_EXPENSE_CATEGORIES)))
+
         categories = {
-            'income': list(dict.fromkeys(DEFAULT_INCOME_CATEGORIES + income_cats)),
-            'expense': list(dict.fromkeys(DEFAULT_EXPENSE_CATEGORIES + expense_cats))
+            'income': income_cats,
+            'expense': expense_cats
         }
 
         finance_summary = _fetch_finance_summary(cursor, user.id)

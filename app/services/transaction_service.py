@@ -128,30 +128,36 @@ def _check_budget_and_notify(conn, cursor, user_id, category, tx_date):
     # Trigger logic
     if spent >= budget_limit:
         msg = f"You have exceeded your {month_str} budget for {category} by {spent - budget_limit:.2f}." if spent > budget_limit else f"You have reached your {month_str} budget limit for {category}."
+        title = f"Budget Reached: {category} ({month_str})"
         cursor.execute(
             """
             SELECT 1
             FROM notifications
             WHERE user_id = %s
               AND type = 'budget_alert'
-              AND title = 'Budget Reached'
-              AND message LIKE %s
-              AND message LIKE %s
+              AND title = %s
             LIMIT 1
             """,
-            (user_id, f"%{month_str}%", f"%{category}%")
+            (user_id, title)
         )
         if not cursor.fetchone():
-            NotificationService.create_notification(user_id, 'budget_alert', 'Budget Reached', msg, '/budget', conn=conn, cursor=cursor)
+            NotificationService.create_notification(user_id, 'budget_alert', title, msg, '/budget', cursor=cursor)
     elif spent >= budget_limit * WARNING_THRESHOLD:
         msg = f"You have spent {(spent/budget_limit)*100:.0f}% of your {month_str} budget for {category}."
-        # Optional: could check if already notified to avoid spam, but since we just do it per transaction it's fine for now, or check DB
+        title = f"Budget Warning: {category} ({month_str})"
         cursor.execute(
-            "SELECT 1 FROM notifications WHERE user_id = %s AND type = 'budget_alert' AND title = 'Budget Warning' AND message = %s",
-            (user_id, msg)
+            """
+            SELECT 1 
+            FROM notifications 
+            WHERE user_id = %s 
+              AND type = 'budget_alert' 
+              AND title = %s
+            LIMIT 1
+            """,
+            (user_id, title)
         )
         if not cursor.fetchone():
-            NotificationService.create_notification(user_id, 'budget_alert', 'Budget Warning', msg, '/budget', conn=conn, cursor=cursor)
+            NotificationService.create_notification(user_id, 'budget_alert', title, msg, '/budget', cursor=cursor)
 
 
 

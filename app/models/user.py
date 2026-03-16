@@ -4,12 +4,14 @@ from app.core.db import db_cursor
 from app.core.extensions import login_manager
 
 class User(UserMixin):
-    def __init__(self, id, username, email, password_hash, currency='INR'):
+    def __init__(self, id, username, email, password_hash, currency='INR', notify_budget_alerts=True, notify_goal_milestones=True):
         self.id = id
         self.username = username
         self.email = email
         self.password_hash = password_hash
         self.currency = currency or 'INR'
+        self.notify_budget_alerts = bool(notify_budget_alerts if notify_budget_alerts is not None else True)
+        self.notify_goal_milestones = bool(notify_goal_milestones if notify_goal_milestones is not None else True)
 
     @staticmethod
     def get(user_id):
@@ -22,7 +24,9 @@ class User(UserMixin):
                 username=user_data['username'],
                 email=user_data['email'],
                 password_hash=user_data['password_hash'],
-                currency=user_data.get('currency', 'INR')
+                currency=user_data.get('currency', 'INR'),
+                notify_budget_alerts=user_data.get('notify_budget_alerts', True),
+                notify_goal_milestones=user_data.get('notify_goal_milestones', True)
             )
         return None
 
@@ -38,7 +42,9 @@ class User(UserMixin):
                 username=user_data['username'],
                 email=user_data['email'],
                 password_hash=user_data['password_hash'],
-                currency=user_data.get('currency', 'INR')
+                currency=user_data.get('currency', 'INR'),
+                notify_budget_alerts=user_data.get('notify_budget_alerts', True),
+                notify_goal_milestones=user_data.get('notify_goal_milestones', True)
             )
         return None
 
