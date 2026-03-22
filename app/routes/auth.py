@@ -70,7 +70,8 @@ def register():
         except (TypeError, ValueError):
             flash('Invalid registration data', 'error')
             return redirect(url_for('auth.register'))
-        new_user_id = register_user(username, email, hashed_password)
+        currency = request.form.get('currency') or 'INR'
+        new_user_id = register_user(username, email, hashed_password, currency)
 
         if not new_user_id:
             flash('Registration failed. Please try again.', 'error')

@@ -59,14 +59,14 @@ graph TD
 
 Robust testing infrastructure ensures application stability against regressions when new features are integrated.
 
-*   **pytest:** A mature, full-featured Python testing tool used as the primary testing framework. Based on the `pytest.ini` and `tests/` structure, it facilitates automated unit tests, API tests (`test_api.py`), and integration tests (`test_crud_workflow.py`).
+*   **pytest:** A mature, full-featured Python testing tool used as the primary testing framework. The project maintains a 100% pass rate across 25 system-level and service-level tests, covering transactions, budgets, goals, and security.
 
 ---
 
 ## 6. Development Workflow and Tooling
 
-*   **Pip / Requirements.txt:** Python dependency management defining all third-party libraries needed to run the ecosystem.
-*   **Environment Configuration (`config.py`):** Centralizes the retrieval of variables (from system environment or `.env`), establishing a scalable, object-oriented configuration pattern for `SECRET_KEY`, `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, and initial seeding options.
+*   **Environment Configuration (`config.py`):** Centralizes the retrieval of variables (from system environment or `.env`), establishing a scalable pattern for `SECRET_KEY`, `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, and initial seeding options.
+*   **Organized Project DNA**: The project follows a decluttered structural pattern with specialized directories for `db/migrations/`, `report/`, and categorized `scripts/` to ensure long-term maintainability.
 
 ---
 

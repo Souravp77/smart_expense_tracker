@@ -1,5 +1,6 @@
 export function renderSettingsView(app, container) {
     const selectedCurrency = app.state.user?.currency || 'INR';
+    const hasData = (app.state.transactions?.length > 0) || (app.state.savingsGoals?.length > 0) || (app.state.budgets?.length > 0);
 
     container.innerHTML = `
         <div class="space-y-6">
@@ -12,12 +13,16 @@ export function renderSettingsView(app, container) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div><label class="block text-sm mb-1">Name</label><input type="text" class="form-input" value="${app.state.user?.name || ''}" disabled></div>
                     <div><label class="block text-sm mb-1">Email</label><input type="email" class="form-input" value="${app.state.user?.email || ''}" disabled></div>
-                    <div><label class="block text-sm mb-1">Currency</label><select id="settingsCurrency" class="form-input">
-                        <option value="USD" ${selectedCurrency === 'USD' ? 'selected' : ''}>USD ($)</option>
-                        <option value="EUR" ${selectedCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
-                        <option value="GBP" ${selectedCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
-                        <option value="INR" ${selectedCurrency === 'INR' ? 'selected' : ''}>INR (Rs)</option>
-                    </select></div>
+                    <div>
+                        <label class="block text-sm mb-1">Currency</label>
+                        <select id="settingsCurrency" class="form-input">
+                            <option value="USD" ${selectedCurrency === 'USD' ? 'selected' : ''}>USD ($)</option>
+                            <option value="EUR" ${selectedCurrency === 'EUR' ? 'selected' : ''}>EUR (EUR)</option>
+                            <option value="GBP" ${selectedCurrency === 'GBP' ? 'selected' : ''}>GBP (GBP)</option>
+                            <option value="INR" ${selectedCurrency === 'INR' ? 'selected' : ''}>INR (Rs)</option>
+                        </select>
+                        ${hasData ? '<p class="text-[10px] text-rose-500 font-bold mt-2"><i class="fas fa-exclamation-triangle mr-1"></i> ATTENTION: Changing your currency will permanently RESET all your transaction data.</p>' : ''}
+                    </div>
                 </div>
                 <button onclick="app.saveSettings()" class="btn-primary">Save Changes</button>
             </div>

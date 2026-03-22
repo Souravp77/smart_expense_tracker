@@ -4,7 +4,7 @@ from pathlib import Path
 from app import create_app, get_db_connection
 from config import Config
 
-SCHEMA_PATH = Path(__file__).resolve().parents[1] / 'db' / 'schema.sql'
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / 'infra' / 'db' / 'schema.sql'
 
 
 def _schema_for_database(schema_text, database_name):

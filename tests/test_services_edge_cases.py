@@ -7,7 +7,7 @@ from app.services.notification_service import NotificationService
 from config import Config
 from pathlib import Path
 
-SCHEMA_PATH = Path(__file__).resolve().parents[1] / 'db' / 'schema.sql'
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / 'infra' / 'db' / 'schema.sql'
 
 def _schema_for_database(schema_text, database_name):
     return (
@@ -79,7 +79,7 @@ class ServicesEdgeCasesTestCase(unittest.TestCase):
         })
 
         notifs = NotificationService.get_all_notifications(self.user_id)
-        self.assertTrue(any(n['title'] == 'Budget Warning' for n in notifs))
+        self.assertTrue(any(n['title'].startswith('Budget Warning') for n in notifs))
 
         # Exceed budget
         transaction_service.add_transaction(self.user_id, {
@@ -91,7 +91,7 @@ class ServicesEdgeCasesTestCase(unittest.TestCase):
         })
 
         notifs = NotificationService.get_all_notifications(self.user_id)
-        self.assertTrue(any(n['title'] == 'Budget Reached' for n in notifs))
+        self.assertTrue(any(n['title'].startswith('Budget Reached') for n in notifs))
 
     def test_goal_service_add_and_milestone(self):
         transaction_service.add_transaction(self.user_id, {

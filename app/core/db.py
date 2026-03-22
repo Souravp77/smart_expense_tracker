@@ -27,7 +27,7 @@ def get_pool():
     return _db_pool
 
 @contextmanager
-def db_cursor(dictionary=False):
+def db_cursor(dictionary=True):
     pool = get_pool()
     conn = pool.get_connection()
     cursor = conn.cursor(dictionary=dictionary)

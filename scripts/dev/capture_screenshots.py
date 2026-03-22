@@ -1,9 +1,17 @@
-from playwright.sync_api import sync_playwright
-import time
+import sys
 import os
+import time
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 def run():
-    artifacts_dir = "c:\\Users\\soura\\.gemini\\antigravity\\brain\\6a6f8d40-ced6-4ff2-98ef-dabe3c7213fc\\"
+    artifacts_dir = str(ROOT_DIR / "docs" / "screenshoot")
+    if not os.path.exists(artifacts_dir):
+        os.makedirs(artifacts_dir)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()

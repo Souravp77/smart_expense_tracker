@@ -3,13 +3,13 @@ import sys
 
 import mysql.connector
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from config import Config
 
-SCHEMA_PATH = ROOT_DIR / 'db' / 'schema.sql'
+SCHEMA_PATH = ROOT_DIR / 'infra' / 'db' / 'schema.sql'
 
 
 def _schema_for_database(schema_text, database_name):

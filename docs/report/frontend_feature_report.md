@@ -87,8 +87,8 @@ Deep-dive data visualization for informed financial decision-making.
 User-specific preferences and account management.
 
 - **Personalization**: Change user display name and profile settings.
-- **Currency Selection**: Configure the local currency symbol throughout the app.
-- **Data Management**: Options for exporting data or resetting account stats.
+- **Professional Currency Management**: Configure the local currency symbol throughout the app. Features a **Professional Reset Gate** that triggers a mandatory data reset if a currency change is attempted while existing data is present, ensuring absolute financial precision.
+- **Data Management**: Advanced options for auditing system health and performing a full **Dynamic Account Reset** via the `/api/data/reset` endpoint.
 
 ---
 

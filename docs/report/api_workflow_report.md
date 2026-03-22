@@ -38,13 +38,20 @@ The Goals API manages long-term savings, which includes automated audit trails.
 
 The API enforces strict rules to prevent logical inconsistencies in financial data.
 
-### Workflow: Handling Account Reset
+### Workflow 3.1: Handling Manual Account Reset
 1.  **Request**: `POST /api/data/reset`.
-2.  **Coordination**: `finance_service.clear_user_financial_data` orchestrates the deletion.
+2.  **Coordination**: `settings_service.clear_user_financial_data` orchestrates the deletion.
 3.  **Sequential Deletion**:
-    - Deletes `transactions` -> Deletes `budgets` -> Deletes `savings_goals`.
-    - This ensures that no orphaned goal audit transactions remain (as they are tied to goal IDs).
+    - Deletes `transactions` -> Deletes `budgets` -> Deletes `savings_goals` -> Deletes `categories`.
+    - This ensures that no orphaned records remain.
 4.  **Sync**: Resets the internal session/user state to reflect a clean slate.
+
+### Workflow 3.2: Currency Integrity Gate
+1.  **Frontend Trigger**: User attempts to change currency in Settings.
+2.  **Data Presence Check**: The frontend verifies if any transactions, budgets, or goals exist in the current session state.
+3.  **Intervention**: If data is present, the UI interrupts the save process with a mandatory **Security Modal**.
+4.  **Reset-on-Save**: If the user confirms, the system executes a full data reset (`/api/data/reset`) *immediately before* updating the currency preference.
+5.  **Result**: Prevents the creation of "Mixed-Currency" financial reports which would lead to incorrect arithmetic balance.
 
 ---
 

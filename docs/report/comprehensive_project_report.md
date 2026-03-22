@@ -62,7 +62,7 @@ ________________________________________
 •	To enforce strict monthly budget limits with real-time variance tracking.
 •	To track savings goals using advanced metadata (icons, priorities, deadlines).
 •	To generate interactive, animated financial reports using Chart.js.
-•	To support global currency configurations (INR, USD, EUR, GBP).
+•	To support professional currency configurations (INR, USD, EUR, GBP) with mandatory data-reset safety nets (Professional Reset Gate).
 •	To ensure permanent, relational data storage via a optimized MySQL schema.
 
 ________________________________________
@@ -104,7 +104,7 @@ ________________________________________
 •	Secure user registration and adaptive login.
 •	Cryptographic password hashing (Bcrypt).
 •	Persistent session management and protected routing.
-•	Profile customization for currency and notification preferences.
+•	Profile customization for currency and notification preferences, featuring session-aware reset logic for data integrity.
 
 ### 8.2 Expense Management Module
 •	Log daily expenses with detailed metadata (Date, Method, Description).
@@ -132,9 +132,9 @@ ________________________________________
 •	**Milestone Tracking**: Visual progress indicators and achievement alerts.
 
 ### 8.7 Notifications Module
-•	**System Alerts**: Automatic generation of budget warnings.
-•	**Goal Milestones**: Congratulatory alerts at 25%, 50%, 75%, and 100%.
-•	**Unread Tracking**: Persistent notification Bell with real-time updates.
+•	**System Alerts**: Automatic generation of budget warnings at 80% and 100% thresholds.
+•	**Goal Milestones**: Congratulatory alerts at 25%, 50%, 75%, and 100% of goal targets.
+•	**Unread Tracking**: Persistent notification Bell with real-time numeric badges and auto-updating lists.
 
 ### 8.8 Analytics and Reports Module
 •	Interactive Doughnut charts for category distributions.
@@ -155,7 +155,7 @@ ________________________________________
 •	**Data Protection**: Passwords are never stored in plain text (Bcrypt salted hashing).
 •	**Session Isolation**: Strict user-id based filtering at the service level.
 •	**CSRF Defense**: Integrated token validation for all POST/PUT/DELETE operations.
-•	**Input Sanitization**: Multi-layer validation (Frontend + Backend Validators) for financial accuracy.
+•	**Input Sanitization**: Multi-layer validation (Frontend + Backend Validators) for financial accuracy, including rejection of non-finite numbers (NaN/Infinity) and decimal overflow protection.
 
 ________________________________________
 
@@ -163,5 +163,5 @@ ________________________________________
 •	**Premium Aesthetics**: Modern, glassmorphic UI with seamless Dark/Light mode transitions.
 •	**High Performance**: Minimalistic payload using Vanilla JS modules instead of heavy frameworks.
 •	**Visual Motivation**: Interactive goal progress and system notifications encourage saving.
-•	**Reliability**: Precision financial arithmetic using `Decimal` types to prevent rounding errors.
+•	**Data Integrity**: Enforced reset logic upon primary currency change to prevent mixed-currency reporting errors.
 •	**Scalability**: Service-oriented backend allow for easy integration of future features.

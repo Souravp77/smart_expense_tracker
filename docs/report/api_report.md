@@ -48,6 +48,7 @@ Endpoints for managing financial transactions (income and expenses).
   Creates a new transaction.
   - **Payload**: `{type, amount, category, date (YYYY-MM-DD), method, description}`
   - **Validation**: Amount must be > 0 and within DECIMAL(10,2) limits. Category length max 50.
+  - **Note on 'Savings' Category**: Transactions in the 'Savings' category are system-generated (linked to Savings Goals) and cannot be manually edited or deleted.
 - **`PUT /api/transactions/<id>`**
   Updates an existing transaction. (Note: System-generated goal funding transactions are read-only).
 - **`DELETE /api/transactions/<id>`**
@@ -64,8 +65,8 @@ Endpoints to track and manage user savings goals.
 
 - **`POST /api/goals`**
   Creates a new savings goal.
-  - **Payload**: `{name, target, current, deadline (YYYY-MM-DD), color}`
-  - **Validation**: Current amount cannot exceed target. Color must be from the allowed Tailwind palette.
+  - **Payload**: `{name, target, current, deadline (YYYY-MM-DD), color, icon, priority}`
+  - **Validation**: Current amount cannot exceed target. Color must be from the allowed Tailwind palette. `priority` defaults to 'medium'.
 - **`PUT /api/goals/<id>`**
   Updates a specific savings goal.
 - **`DELETE /api/goals/<id>`**
@@ -96,6 +97,7 @@ Manages system-generated notifications for the user (e.g., milestone alerts, bud
 
 - **`GET /api/notifications`**
   Retrieves a list of all unread notifications.
+  - **Response**: `{"status": "success", "notifications": [...], "unreadCount": N, "data": {...}}`
 - **`POST /api/notifications/read/<id>`**
   Marks a single specified notification as read.
 - **`POST /api/notifications/read-all`**

@@ -483,7 +483,7 @@ export class ExpenseApp {
     renderTransactionRow(t, clickable = false) {
         const canEdit = !this.isSystemGoalAuditTransaction(t);
         const click = clickable && canEdit ? `onclick="app.editTransaction(${t.id})" class="cursor-pointer hover:bg-blue-50/30 dark:hover:bg-slate-800/30"` : '';
-        return `<tr ${click}><td>${escapeHtml(t.description)}${this.renderSystemAuditBadge(t)}</td><td><span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${escapeHtml(t.category)}</span></td><td class="text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${formatCurrency(t.amount, this.state.user?.currency)}</td></tr>`;
+        return `<tr ${click}><td>${this.renderTransactionDescription(t)}</td><td><span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${escapeHtml(t.category)}</span></td><td class="text-right ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}">${formatCurrency(t.amount, this.state.user?.currency)}</td></tr>`;
     }
 
     renderFullTransactionRow(t) {
@@ -494,7 +494,7 @@ export class ExpenseApp {
                 <button onclick="app.deleteTransaction(${t.id})" class="text-rose-500" aria-label="Delete transaction"><i class="fas fa-trash"></i></button>`;
         return `<tr>
             <td>${formatDate(t.date)}</td>
-            <td>${escapeHtml(t.description)}${this.renderSystemAuditBadge(t)}</td>
+            <td>${this.renderTransactionDescription(t)}</td>
             <td>${escapeHtml(t.category)}</td>
             <td><span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${t.type}</span></td>
             <td>${escapeHtml(t.method || '-')}</td>
@@ -516,8 +516,7 @@ export class ExpenseApp {
                 <div class="tx-mobile-top">
                     <div>
                         <p class="tx-mobile-date">${formatDate(t.date)}</p>
-                        <h4 class="tx-mobile-title">${escapeHtml(t.description || '(No description)')}</h4>
-                        ${this.renderSystemAuditBadge(t)}
+                        <div class="tx-mobile-title">${this.renderTransactionDescription(t)}</div>
                     </div>
                     <span class="badge ${t.type === 'income' ? 'badge-income' : 'badge-expense'}">${t.type}</span>
                 </div>
@@ -715,6 +714,52 @@ export class ExpenseApp {
         return transaction?.type === 'expense'
             && transaction?.category === 'Savings'
             && String(transaction?.description || '').startsWith('[Goal#');
+    }
+
+    getGoalAuditMeta(transaction = {}) {
+        if (!this.isSystemGoalAuditTransaction(transaction)) return null;
+
+        const match = String(transaction.description || '').match(/\[Goal#(\d+)\]\s*(.+)?/i);
+        const goalId = match ? parseInt(match[1], 10) : null;
+        const rawAction = (match?.[2] || 'Goal audit').trim();
+
+        const goal = Number.isFinite(goalId)
+            ? (this.state.savingsGoals || []).find((g) => Number(g.id) === goalId)
+            : null;
+
+        let actionLabel = 'Goal updated';
+        if (/funded/i.test(rawAction)) actionLabel = 'Goal funded';
+        if (/achieved/i.test(rawAction)) actionLabel = 'Goal achieved';
+
+        const goalLabel = goal ? goal.name : (goalId ? `Goal #${goalId}` : 'Goal');
+        const saved = goal ? parseFloat(goal.current_amount || 0) : 0;
+        const target = goal ? parseFloat(goal.target_amount || 0) : 0;
+
+        return {
+            title: goal
+                ? `${actionLabel}: ${goalLabel}`
+                : `${actionLabel}${goalId ? ` (#${goalId})` : ''}`,
+            subtitle: goal
+                ? `${formatCurrency(saved, this.state.user?.currency)} saved of ${formatCurrency(target, this.state.user?.currency)}`
+                : 'Auto-generated savings entry',
+        };
+    }
+
+    renderTransactionDescription(transaction) {
+        const badge = this.renderSystemAuditBadge(transaction);
+        const meta = this.getGoalAuditMeta(transaction);
+
+        if (!meta) {
+            return `${escapeHtml(transaction.description || '(No description)')}${badge}`;
+        }
+
+        return `
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-medium">${escapeHtml(meta.title)}</span>
+                ${badge}
+                <span class="text-xs text-slate-500">${escapeHtml(meta.subtitle)}</span>
+            </div>
+        `;
     }
 
     renderSystemAuditBadge(transaction) {
@@ -1279,10 +1324,62 @@ export class ExpenseApp {
         syncBudgetHints();
     }
 
+    unlockCurrencyEditing() {
+        const select = document.getElementById('settingsCurrency');
+        const btn = document.getElementById('unlockCurrencyBtn');
+        if (!select) return;
+
+        this.showConfirmDialog({
+            title: 'Unlock Currency Context?',
+            message: 'Changing currency with existing data can make your historical reports inaccurate. Use this only if you intend to convert or reset your data.',
+            confirmText: 'Unlock',
+            cancelText: 'Cancel',
+            danger: true
+        }).then((confirmed) => {
+            if (confirmed) {
+                select.disabled = false;
+                if (btn) btn.style.display = 'none';
+                toast.info('Currency settings unlocked');
+            }
+        });
+    }
+
     async saveSettings() {
-        const currency = document.getElementById('settingsCurrency').value;
+        const currencySelect = document.getElementById('settingsCurrency');
+        const currency = currencySelect ? currencySelect.value : null;
         const budgetAlertsEl = document.getElementById('settingsNotifyBudget');
         const goalMilestonesEl = document.getElementById('settingsNotifyGoals');
+
+        // Professional Reset Warning Logic
+        // If currency changed and user has any data (transactions, goals, or budgets)
+        const currentCurrency = this.state.user?.currency;
+        if (currentCurrency && currency && currency !== currentCurrency) {
+            const hasData = (this.state.transactions?.length > 0) || 
+                            (this.state.savingsGoals?.length > 0) || 
+                            (this.state.budgets?.length > 0);
+            
+            if (hasData) {
+                const confirmed = await this.showConfirmDialog({
+                    title: 'WARNING: Data Reset Required',
+                    message: `Changing your primary currency to ${currency} will permanently DELETE all your existing transactions, budgets, and goals to maintain data accuracy. Do you wish to proceed with this reset?`,
+                    confirmText: 'Yes, Reset and Save',
+                    cancelText: 'No, Keep Current',
+                    danger: true
+                });
+                if (!confirmed) return;
+
+                // Execute reset
+                await loading.with(async () => {
+                    try {
+                        await this.requestJson('/api/data/reset', { method: 'POST' }, 'Failed to reset data');
+                        toast.warning('All historical data has been reset for the new currency.');
+                    } catch (error) {
+                        toast.error('Failed to reset data. Settings not saved.');
+                        throw error;
+                    }
+                });
+            }
+        }
 
         const payload = { currency };
         if (budgetAlertsEl) payload.notify_budget_alerts = budgetAlertsEl.checked;

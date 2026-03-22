@@ -1,5 +1,9 @@
 from app.core.db import db_cursor
 from decimal import Decimal, ROUND_HALF_UP
+from app.repositories.transaction_repository import TransactionRepository
+from app.repositories.goal_repository import GoalRepository
+from app.repositories.budget_repository import BudgetRepository
+from app.repositories.category_repository import CategoryRepository
 
 
 MONEY_QUANTUM = Decimal('0.01')
@@ -18,16 +22,9 @@ def _to_money_float(value):
     return float(_to_decimal(value).quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP))
 
 def _fetch_finance_summary(cursor, user_id):
-    cursor.execute(
-        """
-        SELECT COALESCE(SUM(amount), 0) AS total_income
-        FROM transactions
-        WHERE user_id = %s AND type = 'income'
-        """,
-        (user_id,)
-    )
-    total_income = _to_decimal(cursor.fetchone()['total_income'])
-
+    total_income = TransactionRepository.get_total_income(cursor, user_id)
+    
+    # Specific query for non-savings expenses
     cursor.execute(
         """
         SELECT COALESCE(SUM(amount), 0) AS total_expense
@@ -40,15 +37,7 @@ def _fetch_finance_summary(cursor, user_id):
     )
     total_expense = _to_decimal(cursor.fetchone()['total_expense'])
 
-    cursor.execute(
-        """
-        SELECT COALESCE(SUM(current_amount), 0) AS allocated_savings
-        FROM savings_goals
-        WHERE user_id = %s
-        """,
-        (user_id,)
-    )
-    allocated_savings = _to_decimal(cursor.fetchone()['allocated_savings'])
+    allocated_savings = GoalRepository.get_total_allocations(cursor, user_id)
 
     available_income = total_income - allocated_savings
     available_balance = available_income - total_expense
@@ -65,21 +54,14 @@ def _fetch_finance_summary(cursor, user_id):
 
 def get_dashboard_payload(user):
     with db_cursor(dictionary=True) as (_, cursor):
-
-        cursor.execute(
-            "SELECT * FROM transactions WHERE user_id = %s ORDER BY date DESC LIMIT 1000",
-            (user.id,)
-        )
-        transactions = cursor.fetchall()
-
+        transactions = TransactionRepository.get_all_by_user(user.id, cursor=cursor)
         for tx in transactions:
             tx['id'] = tx['transaction_id']
             tx['date'] = tx['date'].isoformat()
             if tx.get('created_at'):
                 tx['created_at'] = tx['created_at'].isoformat()
 
-        cursor.execute("SELECT * FROM savings_goals WHERE user_id = %s", (user.id,))
-        goals = cursor.fetchall()
+        goals = GoalRepository.get_all_by_user(user.id, cursor=cursor)
         for goal in goals:
             goal['id'] = goal['goal_id']
             if goal.get('deadline'):
@@ -87,29 +69,11 @@ def get_dashboard_payload(user):
             if goal.get('created_at'):
                 goal['created_at'] = goal['created_at'].isoformat()
 
-        cursor.execute(
-            """
-            SELECT budget_id, category, amount, month
-            FROM budgets
-            WHERE user_id = %s
-            ORDER BY month DESC, category ASC
-            """,
-            (user.id,)
-        )
-        budgets = cursor.fetchall()
+        budgets = BudgetRepository.get_all_by_user(user.id, cursor=cursor)
         for budget in budgets:
             budget['id'] = budget['budget_id']
 
-        cursor.execute(
-            """
-            SELECT DISTINCT name, type
-            FROM categories
-            WHERE user_id IS NULL OR user_id = %s
-            ORDER BY name ASC
-            """,
-            (user.id,)
-        )
-        categories_raw = cursor.fetchall()
+        categories_raw = CategoryRepository.get_all_by_user(user.id)
         
         income_cats = [c['name'] for c in categories_raw if c['type'] == 'income']
         expense_cats = [c['name'] for c in categories_raw if c['type'] == 'expense']
