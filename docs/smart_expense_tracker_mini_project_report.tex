@@ -106,9 +106,9 @@ Last, but not the least, we express our heartfelt thanks to our friends and pare
 % --- Abstract ---
 \section*{ABSTRACT}
 \addcontentsline{toc}{section}{ABSTRACT}
-Smart Expense Tracker is a web-based financial management system designed to help users record income and expenses efficiently. The system allows users to categorize transactions, set budgets, monitor savings goals, and analyze spending patterns through reports and charts. It provides a secure login system, transaction tracking, notification support, and dashboard analytics, making personal financial management simple and effective.
+Smart Expense Tracker is a secure, web-based financial management system designed to empower users with real-time control over their personal economy. Built on a robust \textbf{Modified MVC (Model-View-Controller)} architecture, the system leverages \textbf{Python (Flask)} and \textbf{MySQL} to provide high-integrity data management and visual analytics. 
 
-The application empowers users with full control over their personal economy, leveraging a secure, database-driven architecture to transform raw financial data into actionable insights through a premium, responsive interface. By digitizing the traditional ledger system, it reduces manual effort, improves spending control, and helps users achieve financial discipline.
+The application facilitates precise income and expense tracking, category-specific monthly budgeting with automated alert thresholds, and milestone-based savings goal management. Featuring a premium, responsive interface styled with \textbf{Tailwind CSS}, it transforms raw transaction data into actionable financial insights. By industrializing the traditional ledger through automated balance invariants and secure session-based authentication, the project ensures data persistence, privacy, and proactive financial monitoring.
 
 \newpage
 
@@ -124,138 +124,112 @@ The application empowers users with full control over their personal economy, le
 \section*{ABBREVIATIONS}
 \addcontentsline{toc}{section}{ABBREVIATIONS}
 \begin{enumerate}
-    \item HTML - HyperText Markup Language
-    \item CSS - Cascading Style Sheets
-    \item JavaScript - Programming Language
-    \item Python - Backend Programming Language
-    \item Flask - Web Framework
-    \item MySQL - Database Management System
-    \item API - Application Programming Interface
+    \item \textbf{MVC} - Model-View-Controller (Architecture)
+    \item \textbf{RDBMS} - Relational Database Management System
+    \item \textbf{Bcrypt} - Password Hashing Function
+    \item \textbf{CSRF} - Cross-Site Request Forgery
+    \item \textbf{AJAX} - Asynchronous JavaScript and XML
+    \item \textbf{API} - Application Programming Interface
 \end{enumerate}
 
 \newpage
 
 % --- Chapter 1 ---
 \section{INTRODUCTION}
-Generating a digital footprint of one's financial activities is crucial in the modern era of rising costs and diverse spending patterns. The Smart Expense Tracker facilitates this by providing a comprehensive platform for recording daily financial activities. It enables users to monitor their wealth, set limits on spending, and plan for future goals seamlessly. The system includes multiple features for enhancing user experience and encouraging people to opt this method by leaving behind the conventional type of financial tracking.
+Effective financial literacy begins with the accurate recording of every transaction. The Smart Expense Tracker addresses the modern need for a centralized, secure, and intuitive platform to manage personal finances.
 
 \subsection{BACKGROUND}
-Many users struggle to manually track daily expenses and savings. Traditional methods such as notebooks or spreadsheets are inefficient and error-prone. The existing manual system does not enable customers to easily understand their spending details, category-wise breakdowns, and their balance at intervals. During this manual system, it is difficult to update or create changes to any data quickly. As users do not have the ability to know what amount is available for specific categories, they are often ineffectual in making fast financial decisions, which can lead to overspending and financial stress. The time loss involved in manual auditing common in traditional methods can be drastically reduced by implementing this digital system.
+The current manual methods of financial tracking suffer from lack of real-time accessibility, high error rates, and zero proactive monitoring. Physical ledgers provide no security and are time-consuming to audit. The Smart Expense Tracker solves these by internalizing business logic that automatically calculates available balances based on earnings, expenditures, and pre-allocated savings.
 
 \subsection{SCOPE}
-The system helps students, families, and professionals monitor financial activities digitally. Enhancing the financial experience \& ensuring financial wellbeing through disciplined choices are some of the tangible benefits. No-touch recording using the web app, real-time analytics, and flexible budget adjustments are key features. The scope includes personalized management with secured accounts, proactive budget alerts, and enterprise-grade data persistence.
+The project is designed for individual users seeking to manage high-frequency daily transactions. It covers identity security, financial enforcement via budget alerts, and dynamic reporting.
 
 \subsection{OBJECTIVE}
-The main objective of the Smart Expense Tracker is to modernise the conventional financial management system and to make good use of digital tracking to reduce time taken in auditing and other delays. A simple database is maintained, allowing for faster execution and maintaining of records. The user interface is user-friendly and ensures that it takes very little time for the user to get used to the system. It will give the users a lot of clarity and will be effective for long-term savings.
+The main objective is to provide an automated alternative to error-prone manual bookkeeping while implementing a \textbf{Service-Repository} architecture for decoupled, maintainable code.
 
 \subsection{PROPOSED SYSTEM}
-The Smart Expense Tracker will provide a very convenient way for users to track their finances. A unique account will be used for users accessing the application through which they will be able to see their available balance, recent transactions, and progress towards goals. Several methods for visualization will be available in the app, preferably charts which can be used to identify spending patterns. This application will also provide details regarding budget limits and other valuable information which is otherwise ignored. The aim is to reduce the stress of financial planning and address flaws in current manual methods.
+The Smart Expense Tracker utilizes a modern technical stack to ensure scalability. It introduces a "virtual allocation" logic for savings where allocated funds are treated as "reserved," dynamically reducing the `Available Balance` shown on the dashboard to prevent accidental overspending.
 
 \newpage
 
 % --- Chapter 2 ---
 \section{SOFTWARE REQUIREMENT SPECIFICATION (SRS)}
-This chapter discussions the product overview, functional requirements, and the technical specifications required to run and maintain the Smart Expense Tracker.
+This chapter provides a technical breakdown of the product specification.
 
 \subsection{PRODUCT OVERVIEW}
-The Smart Expense Tracker is a high-fidelity, web-based financial management system. It facilitates the seamless recording of daily income and expenses, granular categorization of transactions, monthly budget enforcement, and the pursuit of long-term savings goals.
+A full-stack web application implementing the \textbf{Modified MVC} pattern. The backend handles transaction processing and budget validation, while the frontend handles asynchronous data submission and dynamic charting.
 
 \subsection{PRODUCT FUNCTIONALITY}
-\textbf{User: Regular User} \\
-Functions: A User can register and login to the application. They can browse through various transaction categories and add income or expenses. They can set monthly budgets for specific categories and track their progress through visual indicators. Users can also create savings goals and receive notifications when milestones are reached.
-
-\textbf{User: Administrator} \\
-Functions: The Administrator is the super user and has complete control over system-level activities. They can monitor user registrations and high-level system activity. The administrator also manages the list of default transaction categories and can audit transaction logs for system integrity.
+\textbf{User Features:}
+\begin{itemize}
+    \item \textbf{Onboarding}: Registration and login using \textbf{Bcrypt} hashing.
+    \item \textbf{Transaction Engine}: CRUD operations with automatic category detection.
+    \item \textbf{Budgeting}: Set monthly limits with 80\% and 100\% threshold notifications.
+    \item \textbf{Goal Management}: Track savings with automated system-audit transactions.
+\end{itemize}
 
 \subsection{DESIGN AND IMPLEMENTATION CONSTRAINTS}
-In existing manual systems, there are no available options for real-time tracking of budgets or goal milestones. We propose a system for proper management of financial records providing user-friendly features such as real-time balance updates, automated budget alerts, and visual progress tracking.
+Constraints include data isolation via unique user IDs, row-level locking during sensitive financial updates, and custom JSON serialization for accurate handling of \textbf{Decimal} types.
 
 \subsection{HARDWARE REQUIREMENTS}
 \begin{itemize}
-    \item \textbf{Processor}: 2 GHz minimum, multi-core processor.
-    \item \textbf{RAM}: 4 GB minimum.
-    \item \textbf{Storage}: 500 MB minimum.
-    \item \textbf{Display}: Minimum resolution of 1024x768 (Optimized for 1920x1080).
+    \item \textbf{Processor}: Dual-core 2.4 GHz.
+    \item \textbf{RAM}: 4 GB (Server-side) / 2 GB (Client-side).
 \end{itemize}
 
 \subsection{SOFTWARE REQUIREMENTS}
 \begin{itemize}
-    \item \textbf{Frontend}: HTML5, Tailwind CSS, JavaScript (ES6+).
-    \item \textbf{Backend}: Python 3.9+, Flask Framework.
-    \item \textbf{Database}: MySQL 8.0+.
-    \item \textbf{IDE}: Visual Studio Code.
+    \item \textbf{Runtime}: Python 3.9+, Flask 2.0+
+    \item \textbf{Libraries}: Flask-Login, Flask-Bcrypt, mysql-connector-python.
+    \item \textbf{Frontend}: Tailwind CSS 3.0+, Chart.js.
+    \item \textbf{Database}: MySQL 8.0+ (InnoDB Engine).
 \end{itemize}
 
 \newpage
 
 % --- Chapter 3 ---
 \section{MATERIAL AND METHODS}
-Design process is the process through which designers design interfaces in software or electronic devices with an emphasis on aesthetics or style. Here we use different design processes like data flow diagram, activity diagram, use case diagram to implement our project.
+The development process prioritized the \textbf{separation of concerns}.
 
-\subsection{DESIGN PHASE}
-It is a visual representation of the system architecture. It shows the connections between the various components of the system and indicates what functions each component performs. The system follows a modified Model-View-Controller (MVC) architecture for maximum maintainability.
+\subsection{DESIGN PHASE (Service-Repository Pattern)}
+Logic is split into Routes, Services (containing business rules like budget alerts), Repositories (raw SQL), and Models (data structure).
 
 \subsection{DATA FLOW DIAGRAM (DFD)}
-The data flow diagram shown below illustrates the general structure of the system. It demonstrates how and what sorts of services the user chooses, as well as the amount of system engagement.
-
-\begin{verbatim}
-[User] --(Input: Auth/Transactions)--> [Smart Expense Tracker]
-[Smart Expense Tracker] --(Output: Balance/Charts)--> [User]
-\end{verbatim}
-
-\subsection{ACTIVITY DIAGRAM}
-An activity diagram visually presents a series of actions or flow of control in a system similar to a flowchart or a data flow diagram.
-\begin{verbatim}
-Start -> Login -> Validate -> Dashboard
-Dashboard -> Actions -> Store -> Update Stats -> Notify -> Dashboard
-\end{verbatim}
-
-\subsection{USE CASE DIAGRAM}
-It is a graphical depiction of a user's possible interactions with a system. A use case diagram shows various use cases and different types of users the system has.
+The internal calculation flow follows the formula: \textbf{Available Balance = Total Income - (Expenses + Allocated Savings)}. This ensures that "Available Balance" accurately represents spending power after accounting for future goals.
 
 \subsection{DATABASE DESIGN}
-Database Design is a collection of processes that facilitate the designing, development, implementation and maintenance of enterprise data management systems. Properly designed databases are easy to maintain, improve data consistency and are cost effective. The logical model concentrates on the data requirements independent of physical considerations. The physical data design model involves translating the logical DB design onto physical media using hardware resources and DBMS.
-
-Database design is a method of identifying the gaps and opportunities of designing a proper utilization method. It is the main component of a system that gives a blueprint of the data and its behavior inside the system. 
-
-\begin{itemize}
-    \item \textbf{Users}: user\_id, username, email, password\_hash, currency.
-    \item \textbf{Transactions}: transaction\_id, user\_id, category, amount, type, description, date, method.
-    \item \textbf{Budgets}: budget\_id, user\_id, category, amount, month.
-    \item \textbf{Savings Goals}: goal\_id, user\_id, name, target\_amount, current\_amount.
-\end{itemize}
+The database uses a strictly relational schema (InnoDB) to ensure data consistency. The \textbf{users} table serves as the anchor for all financial history, ensuring that account deletion triggers a cascading purge of related data.
 
 \newpage
 
 % --- Chapter 4 ---
 \section{IMPLEMENTATION}
-Implementation is the stage in the project where the theoretical design is turned into a working system. The implementation phase constructs, installs and operates the new system. The most crucial stage in achieving a new successful system is that it will work efficiently and effectively.
+Implementation used \textbf{Flask-Login} for session management and \textbf{Tailwind CSS} for a premium "Glassmorphism" UI.
 
 \subsection{UI SCREENSHOTS}
-
 \begin{figure}[H]
     \centering
-    \fbox{Screenshot: Dashboard Overview}
-    \caption{High-level overview of balances, spending trends, and recent activity.}
+    \fbox{Screenshot: Dashboard Hub}
+    \caption{Real-time dashboard utilizing the \texttt{user\_finance\_summary} view.}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \fbox{Screenshot: Add Transaction}
-    \caption{Interface for logging income and expenses with precise categorization.}
+    \fbox{Screenshot: Analytics Layer}
+    \caption{Data visualization layer using Chart.js to render category distributions.}
 \end{figure}
 
 \newpage
 
 % --- Chapter 5 ---
 \section{RESULTS AND DISCUSSION}
-The Smart Expense Tracker successfully records transactions, generates reports, and provides financial insights through charts and summaries. The application achieves its objective of reducing manual tracking effort and improving financial discipline. We were able to create user-friendly user-interface which can be used by the user efficiently. Regarding the backend of the project we were able to create tables for user, transactions, budgets, and goals which store relevant data securely.
+System performance testing confirmed that the \textbf{Budget Notification Service} accurately triggers warnings at the \textbf{80\%} threshold. The integration of a \textbf{Custom JSON Provider} resolved floating-point inaccuracies typical in JavaScript, ensuring all financial data is precise to two decimal places.
 
 \newpage
 
 % --- Chapter 6 ---
 \section{CONCLUSION}
-The project provides a practical digital solution for financial management. It reduces manual effort, improves spending control, and helps users achieve financial discipline. The transition from manual ledgers to this automated digital ecosystem ensures data persistence, visual clarity, and proactive financial monitoring. With the help of this app we can reduce overspending as we can monitor the budget in real-time. Future enhancements could include automated bank statement parsing and predictive analytics for future spending trends.
+The Smart Expense Tracker successfully demonstrates a professional-grade financial tool. Adopting a \textbf{Service-Repository} pattern ensured high technical standards and scalability. Future updates will focus on \textbf{Predictive Analytics} to forecast spending trends based on historical data.
 
 \newpage
 
@@ -263,13 +237,11 @@ The project provides a practical digital solution for financial management. It r
 \section*{BIBLIOGRAPHY}
 \addcontentsline{toc}{section}{BIBLIOGRAPHY}
 \begin{enumerate}
-    \item \textbf{www.geeksforgeeks.org} - Reference for Data Flow Diagrams and System Design.
-    \item \textbf{www.python.org} - Python Documentation and best practices.
-    \item \textbf{www.mysql.com} - Relational database architecture.
-    \item \textbf{www.w3schools.com} - Frontend development tutorials.
-    \item \textbf{Flask Documentation} - Backend routing and session management.
-    \item \textbf{Chart.js Documentation} - Data visualization integration.
-    \item \textbf{Tailwind CSS Documentation} - Responsive UI components.
+    \item \textbf{Pallets Projects} - Flask Documentation.
+    \item \textbf{Tailwind Labs} - Tailwind CSS Documentation.
+    \item \textbf{OWASP} - Best practices for Bcrypt and CSRF protection.
+    \item \textbf{MDN Web Docs} - Modern JavaScript (ES6) and AJAX.
+    \item \textbf{Chart.js} - Data visualization integration.
 \end{enumerate}
 
 \end{document}

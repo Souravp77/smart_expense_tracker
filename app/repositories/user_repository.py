@@ -37,9 +37,9 @@ class UserRepository:
             return UserRepository._row_to_user(cursor.fetchone())
 
     @staticmethod
-    def create(username, email, password_hash, cursor=None):
-        query = "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)"
-        params = (username, email, password_hash)
+    def create(username, email, password_hash, currency='INR', cursor=None):
+        query = "INSERT INTO users (username, email, password_hash, currency) VALUES (%s, %s, %s, %s)"
+        params = (username, email, password_hash, currency)
         if cursor:
             cursor.execute(query, params)
             return cursor.lastrowid
