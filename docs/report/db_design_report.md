@@ -85,8 +85,9 @@ Enforces monthly spending limits defined by the user for specific expense catego
 | `amount` | DECIMAL(10,2) | NOT NULL | The maximum allowed limit |
 | `month` | VARCHAR(7) | NOT NULL | Format: YYYY-MM |
 
-> **Constraints**:
+> **Constraints & Indexes**:
 > - `UNIQUE KEY (user_id, category, month)` prevents multiple conflicting budgets for the same category in a single month.
+> - Indexed by `(user_id, month)` to optimize monthly budget lookups.
 
 ### 3.5. `savings_goals` Table
 Tracks long-term financial objectives and milestones.
@@ -104,6 +105,9 @@ Tracks long-term financial objectives and milestones.
 | `deadline` | DATE | NULL | Target completion date |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Record creation time |
 
+> **Indexes**:
+> - Indexed by `(user_id)` for quick retrieval of a user's goals.
+
 ### 3.6. `notifications` Table
 Stores systemic alerts regarding user activity (like exceeding budgets or hitting saving milestones).
 
@@ -117,6 +121,9 @@ Stores systemic alerts regarding user activity (like exceeding budgets or hittin
 | `is_read` | BOOLEAN | DEFAULT FALSE | Read receipt tracking |
 | `action_url` | VARCHAR(255) | DEFAULT NULL | Optional redirect link |
 | `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Notification creation time |
+
+> **Indexes**:
+> - Indexed by `(user_id, is_read, created_at)` to optimize querying unread notifications sorted by timestamp.
 
 ---
 
